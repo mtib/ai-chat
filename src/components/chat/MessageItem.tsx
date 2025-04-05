@@ -214,7 +214,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                                                             fontVariationSettings: "'MONO' 1",
                                                             backgroundColor: 'transparent',
                                                             p: 0
-                                                        }
+                                                        },
                                                     }}
                                                     {...props}
                                                 >
@@ -244,7 +244,21 @@ const MessageItem: React.FC<MessageItemProps> = ({
                                                 </Box>
                                             );
                                         }
-                                    }
+                                    },
+                                    img: {
+                                        component: ({ src, alt }) => (
+                                            <img
+                                                src={src}
+                                                alt={alt}
+                                                style={{
+                                                    maxWidth: '100%',
+                                                    borderRadius: 8,
+                                                    marginTop: 8,
+                                                    marginBottom: 8,
+                                                }}
+                                            />
+                                        )
+                                    },
                                 }
                             }}>
                                 {message.content}

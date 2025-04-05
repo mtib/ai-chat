@@ -19,12 +19,19 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdat
         setInput,
         setEditingMessage,
         handleSendMessage,
-        handleGeneratePrompt,
+        generateImage,
         editMessage,
         deleteMessage,
         retryMessage,
         toggleStarMessage
     } = useChat({ conversation, onConversationUpdate });
+
+    // Handler for the image button
+    const handleGenerateImage = () => {
+        if (input.trim()) {
+            generateImage(input);
+        }
+    };
 
     return (
         <Box sx={{
@@ -60,7 +67,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdat
                 value={input}
                 onChange={setInput}
                 onSubmit={handleSendMessage}
-                onPrompt={handleGeneratePrompt}
+                onImage={handleGenerateImage}
                 disabled={loading}
             />
         </Box>

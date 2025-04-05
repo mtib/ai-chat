@@ -27,6 +27,54 @@ export const getApiKey = (): string => {
 };
 
 /**
+ * Interface for DALL-E image generation response
+ */
+export interface ImageResponse {
+    imageUrl: string;
+    revisedPrompt?: string;
+}
+
+/**
+ * Generates an image using DALL-E 3
+ */
+export const generateImageWithDALLE = async (prompt: string): Promise<ImageResponse> => {
+    const apiKey = getApiKey();
+
+    if (!apiKey) {
+        throw new Error('API key not set. Please set your OpenAI API key.');
+    }
+
+    try {
+        const response = await axios.post(
+            `${OPENAI_CONFIG.BASE_URL}${OPENAI_CONFIG.ENDPOINTS.IMAGE_GENERATION}`,
+            {
+                model: OPENAI_CONFIG.DALLE_MODEL,
+                prompt: prompt,
+                n: 1,
+                size: OPENAI_CONFIG.DALLE_SIZE,
+                quality: OPENAI_CONFIG.DALLE_QUALITY,
+                response_format: "url"
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                }
+            }
+        );
+
+        return {
+            imageUrl: response.data.data[0].url,
+            revisedPrompt: response.data.data[0].revised_prompt
+        };
+    } catch (error) {
+        console.error('Error generating image with DALL-E:', error);
+        const axiosError = error as any;
+        throw new Error(axiosError.response?.data?.error?.message || 'Failed to generate image with DALL-E');
+    }
+};
+
+/**
  * Sends a message to OpenAI API and returns the response
  * Uses context selection to manage token usage
  */

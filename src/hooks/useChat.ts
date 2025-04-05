@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Conversation, Message } from '../types';
-import { sendMessageToOpenAI, saveConversation } from '../utils/apiUtils';
+import { sendMessageToOpenAI, saveConversation, generateImageWithDALLE } from '../utils/apiUtils';
 
 interface UseChatProps {
     conversation: Conversation;
@@ -99,6 +99,61 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
         }
     }, [localConversation, updateConversation]);
 
+    // Generate image using DALL-E 3
+    const generateImage = useCallback(async (prompt: string) => {
+        if (!prompt.trim()) return;
+
+        // Add user message to the conversation immediately in UI
+        const userMessage: Message = { role: 'user', content: prompt };
+        const updatedConversation: Conversation = {
+            ...localConversation,
+            messages: [...localConversation.messages, userMessage],
+        };
+
+        // Update local state immediately for instant feedback
+        setLocalConversation(updatedConversation);
+        setInput('');
+        setLoading(true);
+
+        try {
+            // Generate image with DALL-E
+            const imageResponse = await generateImageWithDALLE(prompt);
+
+            // Add image response to conversation
+            const finalConversation: Conversation = {
+                ...updatedConversation,
+                messages: [
+                    ...updatedConversation.messages,
+                    {
+                        role: 'assistant',
+                        content: `![Generated image](${imageResponse.imageUrl})\n\n${imageResponse.revisedPrompt || 'Image generated successfully.'}`
+                    }
+                ],
+            };
+
+            // Save conversation to file
+            await saveConversation(finalConversation);
+
+            // Update the conversation state
+            updateConversation(finalConversation);
+        } catch (error) {
+            console.error('Error generating image:', error);
+            // Handle error - add a system message
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            const errorConversation: Conversation = {
+                ...updatedConversation,
+                messages: [
+                    ...updatedConversation.messages,
+                    { role: 'system', content: `Error generating image: ${errorMessage}` },
+                ],
+            };
+
+            updateConversation(errorConversation);
+        } finally {
+            setLoading(false);
+        }
+    }, [localConversation, updateConversation]);
+
     // Generate prompt based on conversation context without user input
     const handleGeneratePrompt = useCallback(async () => {
         // Skip if there are no messages or if we're already loading
@@ -138,11 +193,15 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
         }
     }, [localConversation, conversation, loading, updateConversation]);
 
-    // Handle form submission
+    // Handle form submission - now decides between send or prompt based on input
     const handleSendMessage = useCallback((e: React.FormEvent) => {
         e.preventDefault();
-        sendMessage(input);
-    }, [input, sendMessage]);
+        if (input.trim()) {
+            sendMessage(input);
+        } else {
+            handleGeneratePrompt();
+        }
+    }, [input, sendMessage, handleGeneratePrompt]);
 
     // Edit an existing message
     const editMessage = useCallback((index: number, content: string) => {
@@ -240,6 +299,7 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
         setEditingMessage,
         handleSendMessage,
         handleGeneratePrompt,
+        generateImage,
         editMessage,
         deleteMessage,
         retryMessage,

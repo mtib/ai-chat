@@ -1,17 +1,18 @@
 import React from 'react';
-import { Box, TextField, Button, CircularProgress } from '@mui/material';
+import { Box, TextField, Button, ButtonGroup, Tooltip } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import PsychologyIcon from '@mui/icons-material/Psychology';
+import ImageIcon from '@mui/icons-material/Image';
 
 interface MessageInputProps {
     value: string;
     onChange: (value: string) => void;
     onSubmit: (e: React.FormEvent) => void;
-    onPrompt: () => void; // New prop for prompt button
+    onImage: () => void; // New prop for image generation
     disabled: boolean;
 }
 
-const MessageInput: React.FC<MessageInputProps> = ({ value, onChange, onSubmit, onPrompt, disabled }) => {
+const MessageInput: React.FC<MessageInputProps> = ({ value, onChange, onSubmit, onImage, disabled }) => {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         onChange(e.target.value);
     };
@@ -19,16 +20,15 @@ const MessageInput: React.FC<MessageInputProps> = ({ value, onChange, onSubmit, 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && e.ctrlKey) {
             e.preventDefault();
-            if (value.trim() && !disabled) {
+            if (!disabled) {
                 onSubmit(e as unknown as React.FormEvent);
             }
         }
     };
 
-    const handlePromptClick = (e: React.MouseEvent) => {
-        e.preventDefault();
-        onPrompt();
-    };
+    // Determine which icon to show based on input state
+    const primaryButtonIcon = value.trim() ? <SendIcon /> : <PsychologyIcon />;
+    const primaryButtonTooltip = value.trim() ? "Send message" : "Generate AI prompt";
 
     return (
         <Box component="form" onSubmit={onSubmit} sx={{ display: 'flex', minHeight: '100px' }}>
@@ -53,34 +53,44 @@ const MessageInput: React.FC<MessageInputProps> = ({ value, onChange, onSubmit, 
                 sx={{
                     display: 'flex',
                     flexDirection: 'column',
-                    alignItems: 'stretch',
                     gap: 1,
                 }}
             >
-                <Button
+                <ButtonGroup
                     variant="contained"
-                    color="primary"
-                    type="submit"
-                    disabled={disabled || !value.trim()}
-                    endIcon={<SendIcon />}
+                    orientation="vertical"
                     sx={{
-                        flexGrow: 1,
+                        height: '100%',
                     }}
                 >
-                    Send
-                </Button>
-                <Button
-                    variant="contained"
-                    color="primary"
-                    disabled={disabled || !!value.trim()}
-                    endIcon={<PsychologyIcon />}
-                    onClick={handlePromptClick}
-                    sx={{
-                        flexGrow: 1,
-                    }}
-                >
-                    Prompt
-                </Button>
+                    <Button
+                        color="primary"
+                        type="submit"
+                        disabled={disabled}
+                        endIcon={primaryButtonIcon}
+                        sx={{
+                            flexGrow: 1,
+                            height: '50%',
+                        }}
+                    >
+                        {value.trim() ? "Send" : "Prompt"}
+                    </Button>
+                    <Button
+                        color="primary"
+                        disabled={disabled || !value.trim()}
+                        endIcon={<ImageIcon />}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            onImage();
+                        }}
+                        sx={{
+                            flexGrow: 1,
+                            height: '50%',
+                        }}
+                    >
+                        Image
+                    </Button>
+                </ButtonGroup>
             </Box>
         </Box>
     );
