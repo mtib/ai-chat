@@ -67,7 +67,9 @@ const ApiKeyModal: React.FC = () => {
                 color="secondary"
                 size="small"
                 onClick={handleOpen}
-                sx={{ position: 'absolute', bottom: 10, left: 10 }}
+                sx={{
+                    m: 1
+                }}
             >
                 {hasEnvKey ? 'API Key (Environment)' : 'Change API Key'}
             </Button>

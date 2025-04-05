@@ -6,6 +6,7 @@ import { useConversationContext } from '../../contexts/ConversationContext';
 import ConversationList from './ConversationList';
 import { Conversation } from '../../types';
 import { saveConversationToFile } from '../../utils/fileUtils';
+import ApiKeyModal from '../ApiKeyModal';
 
 const Sidebar: React.FC = () => {
     const {
@@ -98,6 +99,7 @@ const Sidebar: React.FC = () => {
             <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
                 <ConversationList />
             </Box>
+            <ApiKeyModal />
         </>
     );
 };

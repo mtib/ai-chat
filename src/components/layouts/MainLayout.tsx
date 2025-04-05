@@ -64,8 +64,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                     {children}
                 </Box>
             </Box>
-
-            <ApiKeyModal />
         </Box>
     );
 };
