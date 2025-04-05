@@ -3,7 +3,6 @@ import { Box, Paper } from '@mui/material';
 import { Conversation } from '../../types';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
-import ChatHeader from './ChatHeader';
 import { useChat } from '../../hooks/useChat';
 
 interface ChatPanelProps {
@@ -33,11 +32,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdat
             height: '100%',
             overflow: 'hidden'
         }}>
-            <ChatHeader
-                conversation={localConversation}
-                onConversationUpdate={onConversationUpdate}
-            />
-
             <Paper
                 elevation={3}
                 sx={{

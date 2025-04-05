@@ -60,6 +60,26 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
         setIsRenaming(true);
     };
 
+    const handleExportClick = (event: React.MouseEvent) => {
+        event.stopPropagation();
+        handleMenuClose();
+
+        try {
+            const dataStr = JSON.stringify(conversation, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+
+            const exportFileName = `${conversation.title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.json`;
+
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileName);
+            linkElement.click();
+        } catch (error) {
+            console.error('Error exporting conversation:', error);
+            alert('Failed to export conversation');
+        }
+    };
+
     const handleDeleteClick = (event: React.MouseEvent) => {
         event.stopPropagation();
         handleMenuClose();
@@ -179,6 +199,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
                     anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                 >
                     <MenuItem onClick={handleRenameClick}>Rename</MenuItem>
+                    <MenuItem onClick={handleExportClick}>Export</MenuItem>
                     <MenuItem onClick={handleDeleteClick}>Delete</MenuItem>
                 </Menu>
             </ListItem>
