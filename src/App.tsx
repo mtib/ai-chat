@@ -7,6 +7,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import ChatPanel from './components/ChatPanel';
 import ConversationList from './components/ConversationList';
+import ApiKeyModal from './components/ApiKeyModal';
 import { useConversations } from './hooks/useConversations';
 import { theme } from './theme/theme';
 
@@ -87,6 +88,7 @@ function App() {
                         </Box>
                     )}
                 </Box>
+                <ApiKeyModal />
             </Box>
         </ThemeProvider>
     );
