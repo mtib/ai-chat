@@ -155,52 +155,45 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 <Paper
                     elevation={1}
                     sx={{
-                        p: 2,
+                        px: 1.5,
+                        pt: 0.5,
                         maxWidth: '70%',
                         bgcolor: getPaperBackgroundColor(),
                         borderRadius: 2,
-                        position: 'relative',
                         borderLeft: message.starred ? '3px solid gold' : 'none'
                     }}
                 >
-                    <Box sx={{
-                        position: 'absolute',
-                        top: 8,
-                        right: message.role !== 'system' ? 36 : 8,
-                        opacity: 0.7,
-                        '&:hover': { opacity: 1 }
-                    }}>
-                        <IconButton size="small" onClick={handleStarClick}>
-                            {message.starred ?
-                                <StarIcon fontSize="small" sx={{ color: 'gold' }} /> :
-                                <StarBorderIcon fontSize="small" />
-                            }
-                        </IconButton>
-                    </Box>
+                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                        {/* Action buttons and system instruction in same row */}
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                            {message.role === 'system' ? (
+                                <Typography variant="caption" fontWeight="medium" color="info.light">
+                                    SYSTEM INSTRUCTION
+                                </Typography>
+                            ) : (
+                                <Box />
+                            )}
+                            <Box sx={{ display: 'flex' }}>
+                                {message.role !== 'system' && (
+                                    <IconButton size="small" onClick={handleStarClick} sx={{ opacity: 0.7, '&:hover': { opacity: 1 } }}>
+                                        {message.starred ?
+                                            <StarIcon fontSize="small" sx={{ color: 'gold' }} /> :
+                                            <StarBorderIcon fontSize="small" />
+                                        }
+                                    </IconButton>
+                                )}
+                                <IconButton size="small" onClick={handleOpenMenu} sx={{ opacity: 0.5, '&:hover': { opacity: 1 } }}>
+                                    <MoreVertIcon fontSize="small" />
+                                </IconButton>
+                            </Box>
+                        </Box>
 
-                    {message.role !== 'system' && (
-                        <IconButton
-                            size="small"
-                            onClick={handleOpenMenu}
-                            sx={{
-                                position: 'absolute',
-                                top: 8,
-                                right: 8,
-                                opacity: 0.5,
-                                '&:hover': { opacity: 1 }
-                            }}
-                        >
-                            <MoreVertIcon fontSize="small" />
-                        </IconButton>
-                    )}
-
-                    <Box sx={{ pr: message.role !== 'system' ? 4 : 0 }}>
-                        {message.role === 'system' && (
-                            <Typography variant="caption" fontWeight="medium" color="info.light" display="block" mb={0.5}>
-                                SYSTEM INSTRUCTION
-                            </Typography>
-                        )}
-                        <Box sx={{ whiteSpace: 'pre-wrap', fontFamily: 'Sono' }}>
+                        {/* Message content */}
+                        <Box sx={{
+                            fontFamily: 'Sono',
+                            '& > *:first-child': { pt: 0, mt: 0 },
+                            '& > * > *:first-child': { pt: 0, mt: 0 }
+                        }}>
                             <Markdown options={{
                                 forceBlock: true,
                                 overrides: {
