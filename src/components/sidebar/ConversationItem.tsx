@@ -46,8 +46,10 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
         setAnchorEl(event.currentTarget);
     };
 
-    const handleMenuClose = (event?: React.MouseEvent) => {
-        if (event) event.stopPropagation();
+    const handleMenuClose = (event?: {}, reason?: "backdropClick" | "escapeKeyDown") => {
+        if (event && 'stopPropagation' in event && typeof event.stopPropagation === 'function') {
+            event.stopPropagation();
+        }
         setAnchorEl(null);
     };
 
