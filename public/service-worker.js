@@ -7,8 +7,8 @@ const ASSET_CACHE_NAME = 'story-crafter-assets-v1';
 
 // Resources to precache for immediate offline use
 const STATIC_ASSETS = [
-    '/ai-chat/',
-    '/ai-chat/index.html',
+    '/',
+    '/index.html',
 ];
 
 // The install handler takes care of precaching static resources
