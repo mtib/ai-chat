@@ -25,10 +25,14 @@ const MessageList: React.FC<MessageListProps> = ({
     loading
 }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const prevMessagesLengthRef = useRef<number>(messages.length);
 
-    // Scroll to bottom when messages change
+    // Scroll to bottom only when new messages are added
     useEffect(() => {
-        scrollToBottom();
+        if (messages.length > prevMessagesLengthRef.current) {
+            scrollToBottom();
+        }
+        prevMessagesLengthRef.current = messages.length;
     }, [messages]);
 
     const scrollToBottom = () => {
