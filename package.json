@@ -20,9 +20,9 @@
         "@types/react-dom": "^19.1.1",
         "@types/uuid": "^10.0.0",
         "@vitejs/plugin-react": "^4.3.4",
+        "npm-check-updates": "^17.1.16",
         "typescript": "^5.8.3",
-        "vite": "^6.2.5",
-        "npm-check-updates": "^17.1.16"
+        "vite": "^6.2.5"
     },
     "scripts": {
         "dev": "vite",

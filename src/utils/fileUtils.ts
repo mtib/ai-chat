@@ -49,7 +49,10 @@ export const deleteConversation = async (conversationId: string): Promise<Conver
     try {
         const conversations = await loadConversations();
         const updatedConversations = conversations.filter(c => c.id !== conversationId);
+
+        // Save the updated conversations back to storage
         localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedConversations));
+
         return updatedConversations;
     } catch (error) {
         console.error('Error deleting conversation:', error);
@@ -72,16 +75,45 @@ export const createNewConversation = async (title: string = 'New Conversation'):
 };
 
 export const updateConversationTitle = async (conversationId: string, newTitle: string): Promise<Conversation> => {
-    const conversations = await loadConversations();
-    const conversation = conversations.find(c => c.id === conversationId);
+    try {
+        const conversations = await loadConversations();
+        const conversationIndex = conversations.findIndex(c => c.id === conversationId);
 
-    if (!conversation) {
-        throw new Error('Conversation not found');
+        if (conversationIndex === -1) {
+            throw new Error('Conversation not found');
+        }
+
+        const conversation = { ...conversations[conversationIndex] };
+        conversation.title = newTitle;
+        conversation.updatedAt = new Date().toISOString();
+
+        // Update the conversation in the array
+        conversations[conversationIndex] = conversation;
+
+        // Save all conversations back to storage
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
+
+        return conversation;
+    } catch (error) {
+        console.error('Error updating conversation title:', error);
+        throw error;
     }
+};
 
-    conversation.title = newTitle;
-    conversation.updatedAt = new Date().toISOString();
+// Add the missing export function for exporting conversations to file
+export const exportConversationToFile = async (conversation: Conversation): Promise<void> => {
+    try {
+        const dataStr = JSON.stringify(conversation, null, 2);
+        const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
 
-    await saveConversationToFile(conversation);
-    return conversation;
+        const exportFileName = `${conversation.title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.json`;
+
+        const linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', exportFileName);
+        linkElement.click();
+    } catch (error) {
+        console.error('Error exporting conversation:', error);
+        throw new Error('Failed to export conversation');
+    }
 };

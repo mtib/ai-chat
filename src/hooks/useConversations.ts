@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Conversation } from '../types';
-import { loadConversations, saveConversationToFile, deleteConversation as deleteConversationFile } from '../utils/fileUtils';
+import { loadConversations, saveConversationToFile, deleteConversation as deleteConversationFile, updateConversationTitle as updateConversationTitleFile } from '../utils/fileUtils';
 import { filterConversations } from '../utils/searchUtils';
 
 /**
@@ -61,6 +61,11 @@ export const useConversations = () => {
 
     // Update a conversation
     const handleUpdateConversation = useCallback((updatedConversation: Conversation) => {
+        // Ensure we save the updated conversation to storage
+        saveConversationToFile(updatedConversation).catch(err => {
+            console.error('Failed to save updated conversation:', err);
+        });
+
         setConversations(prev =>
             prev.map(c => c.id === updatedConversation.id ? updatedConversation : c)
         );
@@ -73,12 +78,16 @@ export const useConversations = () => {
     // Delete a conversation
     const handleDeleteConversation = useCallback(async (conversationId: string): Promise<Conversation[]> => {
         try {
+            // Delete from storage first
             const updatedConversations = await deleteConversationFile(conversationId);
+
+            // Update the conversations state
             setConversations(updatedConversations);
 
-            // If active conversation was deleted, select the first available or null
+            // Handle active conversation change if it was deleted
             if (activeConversation && activeConversation.id === conversationId) {
-                setActiveConversation(updatedConversations.length > 0 ? updatedConversations[0] : null);
+                const newActiveConversation = updatedConversations.length > 0 ? updatedConversations[0] : null;
+                setActiveConversation(newActiveConversation);
             }
 
             return updatedConversations;
@@ -91,25 +100,29 @@ export const useConversations = () => {
     // Update conversation title
     const handleUpdateTitle = useCallback(async (conversationId: string, newTitle: string) => {
         try {
-            const conversation = conversations.find(c => c.id === conversationId);
-            if (!conversation) {
-                throw new Error('Conversation not found');
+            // Update the title in storage first
+            const updatedConversation = await updateConversationTitleFile(conversationId, newTitle);
+
+            if (!updatedConversation) {
+                throw new Error("Failed to update conversation title");
             }
 
-            const updatedConversation = {
-                ...conversation,
-                title: newTitle,
-                updatedAt: new Date().toISOString()
-            };
+            // Update local state
+            setConversations(prev =>
+                prev.map(c => c.id === conversationId ? updatedConversation : c)
+            );
 
-            await saveConversationToFile(updatedConversation);
-            handleUpdateConversation(updatedConversation);
+            // Update active conversation if needed
+            if (activeConversation?.id === conversationId) {
+                setActiveConversation(updatedConversation);
+            }
+
             return updatedConversation;
         } catch (error) {
             console.error('Failed to update conversation title:', error);
             return null;
         }
-    }, [conversations, handleUpdateConversation]);
+    }, [activeConversation]);
 
     // Filter conversations based on search query
     const filteredConversations = filterConversations(conversations, searchQuery);

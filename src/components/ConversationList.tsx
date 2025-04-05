@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Box, List, ListItem, ListItemText, Typography, IconButton, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Button, Divider, ListItemButton } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import { Conversation } from '../types';
 
 // Define prompt templates - keeping consistent with ChatPanel
@@ -33,6 +34,15 @@ const ConversationList: React.FC<ConversationListProps> = ({
     const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
     const [newTitle, setNewTitle] = useState('');
     const [selectedTemplate, setSelectedTemplate] = useState(PROMPT_TEMPLATES.GENERIC);
+
+    // Add states for edit dialog
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [editTitle, setEditTitle] = useState('');
+    const [editingConversation, setEditingConversation] = useState<Conversation | null>(null);
+
+    // Add states for delete confirmation dialog
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
 
     const handleClose = () => {
         setIsNewDialogOpen(false);
@@ -66,6 +76,51 @@ const ConversationList: React.FC<ConversationListProps> = ({
         handleClose();
     };
 
+    const handleEditClick = (e: React.MouseEvent, conversation: Conversation) => {
+        e.stopPropagation(); // Prevent conversation selection
+        setEditingConversation(conversation);
+        setEditTitle(conversation.title);
+        setIsEditDialogOpen(true);
+    };
+
+    const handleEditClose = () => {
+        setIsEditDialogOpen(false);
+        setEditTitle('');
+        setEditingConversation(null);
+    };
+
+    const handleSaveEdit = () => {
+        if (!editingConversation || !onUpdate) return;
+
+        const updatedConversation = {
+            ...editingConversation,
+            title: editTitle || editingConversation.title,
+            updatedAt: new Date().toISOString()
+        };
+
+        onUpdate(updatedConversation);
+        handleEditClose();
+    };
+
+    const handleDeleteClick = (e: React.MouseEvent, id: string) => {
+        e.stopPropagation(); // Prevent conversation selection
+        setConversationToDelete(id);
+        setIsDeleteDialogOpen(true);
+    };
+
+    const handleDeleteConfirm = () => {
+        if (conversationToDelete) {
+            onDelete(conversationToDelete);
+        }
+        setIsDeleteDialogOpen(false);
+        setConversationToDelete(null);
+    };
+
+    const handleDeleteCancel = () => {
+        setIsDeleteDialogOpen(false);
+        setConversationToDelete(null);
+    };
+
     return (
         <Box sx={{ width: '100%', maxWidth: 600, bgcolor: 'background.paper', borderRight: 1, borderColor: 'divider' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2 }}>
@@ -81,9 +136,14 @@ const ConversationList: React.FC<ConversationListProps> = ({
                         key={conversation.id}
                         disablePadding
                         secondaryAction={
-                            <IconButton edge="end" onClick={() => onDelete(conversation.id)}>
-                                <DeleteIcon />
-                            </IconButton>
+                            <Box>
+                                <IconButton edge="end" onClick={(e) => handleEditClick(e, conversation)}>
+                                    <EditIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton edge="end" onClick={(e) => handleDeleteClick(e, conversation.id)}>
+                                    <DeleteIcon />
+                                </IconButton>
+                            </Box>
                         }
                     >
                         <ListItemButton
@@ -167,6 +227,42 @@ const ConversationList: React.FC<ConversationListProps> = ({
                 <DialogActions>
                     <Button onClick={handleClose}>Cancel</Button>
                     <Button onClick={handleCreate} variant="contained">Create</Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Edit conversation dialog */}
+            <Dialog open={isEditDialogOpen} onClose={handleEditClose} fullWidth maxWidth="sm">
+                <DialogTitle>Edit Conversation</DialogTitle>
+                <DialogContent>
+                    <TextField
+                        autoFocus
+                        margin="dense"
+                        label="Title"
+                        fullWidth
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        variant="outlined"
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleEditClose}>Cancel</Button>
+                    <Button onClick={handleSaveEdit} variant="contained">Save</Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Delete confirmation dialog */}
+            <Dialog open={isDeleteDialogOpen} onClose={handleDeleteCancel}>
+                <DialogTitle>Delete Conversation</DialogTitle>
+                <DialogContent>
+                    <Typography>
+                        Are you sure you want to delete this conversation? This action cannot be undone.
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleDeleteCancel}>Cancel</Button>
+                    <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+                        Delete
+                    </Button>
                 </DialogActions>
             </Dialog>
         </Box>
