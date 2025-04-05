@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Conversation, Message } from '../types';
 
 // For now, we'll use localStorage as a substitute for real file operations
-const STORAGE_KEY = 'story_crafter_conversations';
+const STORAGE_KEY = 'conversation_ai_data';
 
 export const loadConversations = async (): Promise<Conversation[]> => {
     try {
@@ -57,18 +57,14 @@ export const deleteConversation = async (conversationId: string): Promise<Conver
     }
 };
 
-export const createNewConversation = async (title: string = 'New Story'): Promise<Conversation> => {
+// This function is only used as a fallback and should not add default system messages
+export const createNewConversation = async (title: string = 'New Conversation'): Promise<Conversation> => {
     const newConversation: Conversation = {
         id: uuidv4(),
         title,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        messages: [
-            {
-                role: 'system',
-                content: 'Welcome to your new story! How would you like to begin?'
-            }
-        ]
+        messages: []
     };
 
     await saveConversationToFile(newConversation);

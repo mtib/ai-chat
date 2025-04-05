@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Conversation, Message } from '../types';
 import { sendMessageToOpenAI, saveConversation } from '../utils/apiUtils';
 
@@ -16,6 +16,11 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
     const [loading, setLoading] = useState(false);
     const [localConversation, setLocalConversation] = useState<Conversation>(conversation);
     const [editingMessage, setEditingMessage] = useState<{ index: number, content: string; } | null>(null);
+
+    // Update local state when the conversation prop changes
+    useEffect(() => {
+        setLocalConversation(conversation);
+    }, [conversation]);
 
     // Update local state when the conversation prop changes
     const updateConversation = useCallback((updatedConversation: Conversation) => {

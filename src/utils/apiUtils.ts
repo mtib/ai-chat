@@ -37,22 +37,24 @@ export const sendMessageToOpenAI = async (conversation: Conversation): Promise<s
 
     try {
         // Format the messages for OpenAI API
-        const messages: Message[] = conversation.messages.map(msg => ({
-            role: msg.role,
-            content: msg.content
-        }));
+        const messages = [...conversation.messages];
 
-        // Add a system message to guide the AI
-        const systemMessage: Message = {
-            role: "system",
-            content: SYSTEM_PROMPT
-        };
+        // Check if there's already a system message in the conversation
+        const hasSystemMessage = messages.some(msg => msg.role === 'system');
+
+        // Only add the default system prompt if there isn't already a system message
+        if (!hasSystemMessage) {
+            messages.unshift({
+                role: "system",
+                content: SYSTEM_PROMPT
+            });
+        }
 
         const response = await axios.post(
             `${OPENAI_CONFIG.BASE_URL}${OPENAI_CONFIG.ENDPOINTS.CHAT_COMPLETION}`,
             {
                 model: OPENAI_CONFIG.DEFAULT_MODEL,
-                messages: [systemMessage, ...messages],
+                messages,
                 temperature: OPENAI_CONFIG.TEMPERATURE,
             },
             {

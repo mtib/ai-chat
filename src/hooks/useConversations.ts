@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Conversation } from '../types';
-import { loadConversations, createNewConversation, updateConversationTitle, deleteConversation as deleteConversationFile } from '../utils/fileUtils';
+import { loadConversations, saveConversationToFile, deleteConversation as deleteConversationFile } from '../utils/fileUtils';
 import { filterConversations } from '../utils/searchUtils';
 
 /**
@@ -33,11 +33,24 @@ export const useConversations = () => {
         loadInitialConversations();
     }, []);
 
-    // Create a new conversation
-    const handleCreateConversation = useCallback(async () => {
+    // Create a new conversation - Modified to accept a conversation parameter
+    const handleCreateConversation = useCallback(async (newConversation?: Conversation) => {
         try {
-            const newConversation = await createNewConversation(`New Story ${conversations.length + 1}`);
-            setConversations(prev => [...prev, newConversation]);
+            // Either use the provided conversation or create a default one
+            if (!newConversation) {
+                newConversation = {
+                    id: Date.now().toString(),
+                    title: `New Conversation ${conversations.length + 1}`,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    messages: []
+                };
+            }
+
+            // Save the conversation to storage
+            await saveConversationToFile(newConversation);
+
+            setConversations(prev => [...prev, newConversation!]);
             setActiveConversation(newConversation);
             return newConversation;
         } catch (error) {
@@ -78,14 +91,25 @@ export const useConversations = () => {
     // Update conversation title
     const handleUpdateTitle = useCallback(async (conversationId: string, newTitle: string) => {
         try {
-            const updatedConversation = await updateConversationTitle(conversationId, newTitle);
+            const conversation = conversations.find(c => c.id === conversationId);
+            if (!conversation) {
+                throw new Error('Conversation not found');
+            }
+
+            const updatedConversation = {
+                ...conversation,
+                title: newTitle,
+                updatedAt: new Date().toISOString()
+            };
+
+            await saveConversationToFile(updatedConversation);
             handleUpdateConversation(updatedConversation);
             return updatedConversation;
         } catch (error) {
             console.error('Failed to update conversation title:', error);
             return null;
         }
-    }, [handleUpdateConversation]);
+    }, [conversations, handleUpdateConversation]);
 
     // Filter conversations based on search query
     const filteredConversations = filterConversations(conversations, searchQuery);

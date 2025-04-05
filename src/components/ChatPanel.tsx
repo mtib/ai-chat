@@ -10,6 +10,13 @@ import Markdown from 'markdown-to-jsx';
 import { Conversation } from '../types';
 import { useChat } from '../hooks/useChat';
 
+// Define prompt templates
+const PROMPT_TEMPLATES = {
+    GENERIC: "I am a helpful AI assistant. I'll answer questions, provide information, and assist with various tasks.",
+    CODING: "I am a coding assistant. I can help with programming questions, debugging, explaining code concepts, and providing code examples across various languages and frameworks.",
+    DND: "I am a creative writing assistant for tabletop role-playing adventures. I can help create characters, design encounters, develop storylines, and describe immersive worlds for your campaign."
+};
+
 interface ChatPanelProps {
     conversation: Conversation;
     onConversationUpdate?: (conversation: Conversation) => void;
@@ -33,6 +40,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdat
     const [selectedMessageIndex, setSelectedMessageIndex] = useState<number | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [copySnackbar, setCopySnackbar] = useState(false);
+    const [promptSelectOpen, setPromptSelectOpen] = useState(false);
 
     useEffect(() => {
         scrollToBottom();
@@ -108,13 +116,66 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdat
         linkElement.click();
     };
 
+    // Handle setting system prompt
+    const handleSetSystemPrompt = (prompt: string) => {
+        // Find the system message or create it if it doesn't exist
+        const messages = [...localConversation.messages];
+        const systemIndex = messages.findIndex(m => m.role === 'system');
+
+        if (systemIndex >= 0) {
+            // Update existing system message
+            messages[systemIndex] = { ...messages[systemIndex], content: prompt };
+        } else {
+            // Add system message at the beginning
+            messages.unshift({ role: 'system', content: prompt });
+        }
+
+        if (onConversationUpdate) {
+            onConversationUpdate({
+                ...localConversation,
+                messages
+            });
+        }
+
+        setPromptSelectOpen(false);
+    };
+
+    // Helper to get appropriate placeholder text based on conversation template
+    const getPlaceholderText = () => {
+        const systemMessage = localConversation.messages.find(m => m.role === 'system');
+        if (!systemMessage) return "Type a message to start chatting...";
+
+        if (systemMessage.content === PROMPT_TEMPLATES.GENERIC) {
+            return "Ask me anything...";
+        } else if (systemMessage.content === PROMPT_TEMPLATES.CODING) {
+            return "Ask a coding question or describe a programming problem...";
+        } else if (systemMessage.content === PROMPT_TEMPLATES.DND) {
+            return "Describe your scene, ask for ideas, or request story development...";
+        }
+
+        return "Type a message to start chatting...";
+    };
+
     return (
-        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Box sx={{
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+        }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, py: 1 }}>
                 <Typography variant="h6">
                     {localConversation.title}
                 </Typography>
                 <Box>
+                    <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => setPromptSelectOpen(true)}
+                        sx={{ mr: 1 }}
+                    >
+                        Set Template
+                    </Button>
                     <Button
                         variant="outlined"
                         size="small"
@@ -126,6 +187,57 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdat
                 </Box>
             </Box>
 
+            {/* Template selection dialog */}
+            <Dialog open={promptSelectOpen} onClose={() => setPromptSelectOpen(false)}>
+                <DialogTitle>Select Conversation Template</DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" sx={{ mb: 2 }}>
+                        Choose a template to set the AI's behavior for this conversation:
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        <Button
+                            variant="outlined"
+                            onClick={() => handleSetSystemPrompt(PROMPT_TEMPLATES.GENERIC)}
+                            sx={{ justifyContent: 'flex-start', textAlign: 'left', py: 2 }}
+                        >
+                            <Box>
+                                <Typography variant="subtitle1">Generic Assistant</Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                    General-purpose AI assistant for answering questions and providing information
+                                </Typography>
+                            </Box>
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            onClick={() => handleSetSystemPrompt(PROMPT_TEMPLATES.CODING)}
+                            sx={{ justifyContent: 'flex-start', textAlign: 'left', py: 2 }}
+                        >
+                            <Box>
+                                <Typography variant="subtitle1">Coding Assistant</Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                    Specialized in programming help, code examples, and technical explanations
+                                </Typography>
+                            </Box>
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            onClick={() => handleSetSystemPrompt(PROMPT_TEMPLATES.DND)}
+                            sx={{ justifyContent: 'flex-start', textAlign: 'left', py: 2 }}
+                        >
+                            <Box>
+                                <Typography variant="subtitle1">TTRPG Writing Assistant</Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                    Helps create characters, storylines, and worlds for tabletop role-playing games
+                                </Typography>
+                            </Box>
+                        </Button>
+                    </Box>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setPromptSelectOpen(false)}>Cancel</Button>
+                </DialogActions>
+            </Dialog>
+
             {/* Messages area */}
             <Paper
                 elevation={3}
@@ -134,7 +246,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdat
                     p: 2,
                     mb: 2,
                     overflowY: 'auto',
-                    maxHeight: 'calc(100vh - 240px)',
+                    display: 'flex',
+                    flexDirection: 'column',
                     bgcolor: 'background.paper'
                 }}
             >
@@ -286,14 +399,15 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdat
             </Snackbar>
 
             {/* Input area */}
-            <Box component="form" onSubmit={handleSendMessage} sx={{ display: 'flex' }}>
+            <Box component="form" onSubmit={handleSendMessage} sx={{ display: 'flex', minHeight: '100px' }}>
                 <TextField
                     fullWidth
-                    placeholder="Describe your scene, ask for ideas, or request story development..."
+                    placeholder={getPlaceholderText()}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     multiline
-                    maxRows={4}
+                    minRows={3}
+                    maxRows={6}
                     disabled={loading}
                     sx={{ mr: 1 }}
                 />
@@ -303,6 +417,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdat
                     type="submit"
                     disabled={loading || !input.trim()}
                     endIcon={loading ? <CircularProgress size={20} /> : <SendIcon />}
+                    sx={{ alignSelf: 'flex-start' }}
                 >
                     Send
                 </Button>
