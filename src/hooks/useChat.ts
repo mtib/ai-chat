@@ -99,6 +99,45 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
         }
     }, [localConversation, updateConversation]);
 
+    // Generate prompt based on conversation context without user input
+    const handleGeneratePrompt = useCallback(async () => {
+        // Skip if there are no messages or if we're already loading
+        if (localConversation.messages.length === 0 || loading) return;
+
+        setLoading(true);
+
+        try {
+            // Send to API
+            const suggestedPrompt = await sendMessageToOpenAI(localConversation);
+
+            // Add the AI's response as an assistant message
+            const finalConversation: Conversation = {
+                ...localConversation,
+                messages: [...localConversation.messages, { role: 'assistant', content: suggestedPrompt }],
+            };
+
+            // Save conversation to file
+            await saveConversation(finalConversation);
+
+            // Update the conversation state
+            updateConversation(finalConversation);
+        } catch (error) {
+            console.error('Error generating prompt:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            const errorConversation: Conversation = {
+                ...localConversation,
+                messages: [
+                    ...localConversation.messages,
+                    { role: 'system', content: `Error generating prompt: ${errorMessage}` },
+                ],
+            };
+
+            updateConversation(errorConversation);
+        } finally {
+            setLoading(false);
+        }
+    }, [localConversation, conversation, loading, updateConversation]);
+
     // Handle form submission
     const handleSendMessage = useCallback((e: React.FormEvent) => {
         e.preventDefault();
@@ -200,6 +239,7 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
         setInput,
         setEditingMessage,
         handleSendMessage,
+        handleGeneratePrompt,
         editMessage,
         deleteMessage,
         retryMessage,

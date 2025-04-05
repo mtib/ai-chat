@@ -19,6 +19,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdat
         setInput,
         setEditingMessage,
         handleSendMessage,
+        handleGeneratePrompt,
         editMessage,
         deleteMessage,
         retryMessage,
@@ -59,6 +60,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdat
                 value={input}
                 onChange={setInput}
                 onSubmit={handleSendMessage}
+                onPrompt={handleGeneratePrompt}
                 disabled={loading}
             />
         </Box>
