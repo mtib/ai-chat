@@ -30,6 +30,26 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
         }
     }, [onConversationUpdate]);
 
+    // Toggle star status of a message
+    const toggleStarMessage = useCallback((index: number) => {
+        const newMessages = [...localConversation.messages];
+        const message = newMessages[index];
+
+        // Toggle the starred property
+        newMessages[index] = {
+            ...message,
+            starred: !message.starred
+        };
+
+        const updatedConversation = {
+            ...localConversation,
+            messages: newMessages
+        };
+
+        updateConversation(updatedConversation);
+        saveConversation(updatedConversation);
+    }, [localConversation, updateConversation]);
+
     // Send a message to OpenAI and update the conversation
     const sendMessage = useCallback(async (messageText: string) => {
         if (!messageText.trim()) return;
@@ -93,9 +113,11 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
         // When editing an AI message, convert it to user message
         const role = originalMessage.role === 'assistant' ? 'user' : originalMessage.role;
 
+        // Preserve the starred status when editing
         newMessages[index] = {
             role,
-            content
+            content,
+            starred: originalMessage.starred
         };
 
         const updatedConversation = {
@@ -180,6 +202,7 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
         handleSendMessage,
         editMessage,
         deleteMessage,
-        retryMessage
+        retryMessage,
+        toggleStarMessage
     };
 };

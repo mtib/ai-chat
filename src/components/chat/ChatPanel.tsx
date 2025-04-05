@@ -22,7 +22,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdat
         handleSendMessage,
         editMessage,
         deleteMessage,
-        retryMessage
+        retryMessage,
+        toggleStarMessage
     } = useChat({ conversation, onConversationUpdate });
 
     return (
@@ -53,6 +54,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdat
                     onEditMessage={editMessage}
                     onDeleteMessage={deleteMessage}
                     onRetryMessage={retryMessage}
+                    onToggleStarMessage={toggleStarMessage}
                     editingMessage={editingMessage}
                     setEditingMessage={setEditingMessage}
                     loading={loading}

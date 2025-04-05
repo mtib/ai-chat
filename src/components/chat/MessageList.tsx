@@ -8,6 +8,7 @@ interface MessageListProps {
     onEditMessage: (index: number, content: string) => void;
     onDeleteMessage: (index: number) => void;
     onRetryMessage: (index: number) => void;
+    onToggleStarMessage: (index: number) => void;
     editingMessage: { index: number, content: string; } | null;
     setEditingMessage: React.Dispatch<React.SetStateAction<{ index: number, content: string; } | null>>;
     loading: boolean;
@@ -18,6 +19,7 @@ const MessageList: React.FC<MessageListProps> = ({
     onEditMessage,
     onDeleteMessage,
     onRetryMessage,
+    onToggleStarMessage,
     editingMessage,
     setEditingMessage,
     loading
@@ -49,6 +51,7 @@ const MessageList: React.FC<MessageListProps> = ({
                     onEdit={onEditMessage}
                     onDelete={onDeleteMessage}
                     onRetry={onRetryMessage}
+                    onToggleStar={onToggleStarMessage}
                     isEditing={editingMessage?.index === index}
                     editContent={editingMessage?.content || ''}
                     setEditingMessage={setEditingMessage}

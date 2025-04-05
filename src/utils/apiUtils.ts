@@ -2,6 +2,7 @@ import axios from 'axios';
 import { saveConversationToFile } from './fileUtils';
 import { Conversation, Message } from '../types';
 import { ENV_API_KEY, OPENAI_CONFIG, SYSTEM_PROMPT } from '../config/apiConfig';
+import { findRelevantMessages } from './contextUtils';
 
 // This should be stored securely and not in client-side code in production
 // Consider using environment variables or a backend service
@@ -27,6 +28,7 @@ export const getApiKey = (): string => {
 
 /**
  * Sends a message to OpenAI API and returns the response
+ * Uses context selection to manage token usage
  */
 export const sendMessageToOpenAI = async (conversation: Conversation): Promise<string> => {
     const apiKey = getApiKey();
@@ -36,25 +38,38 @@ export const sendMessageToOpenAI = async (conversation: Conversation): Promise<s
     }
 
     try {
-        // Format the messages for OpenAI API
-        const messages = [...conversation.messages];
+        // Get the latest user message to use for context selection
+        const lastMessage = conversation.messages[conversation.messages.length - 1];
 
-        // Check if there's already a system message in the conversation
-        const hasSystemMessage = messages.some(msg => msg.role === 'system');
+        // If the conversation already has a system message, use the existing messages
+        const hasSystemMessage = conversation.messages.some(msg => msg.role === 'system');
 
-        // Only add the default system prompt if there isn't already a system message
-        if (!hasSystemMessage) {
-            messages.unshift({
-                role: "system",
-                content: SYSTEM_PROMPT
-            });
+        let messagesToSend: Message[];
+
+        // Only apply context selection if the last message is from the user
+        if (lastMessage && lastMessage.role === 'user') {
+            // Use our context selection algorithm to get the most relevant messages
+            messagesToSend = findRelevantMessages(conversation, lastMessage.content);
+
+            // If there's no system message yet, add the default one at the beginning
+            if (!hasSystemMessage) {
+                messagesToSend = [
+                    { role: 'system', content: SYSTEM_PROMPT },
+                    ...messagesToSend
+                ];
+            }
+        } else {
+            // If the last message isn't from a user, use the whole conversation or add default system prompt
+            messagesToSend = hasSystemMessage
+                ? [...conversation.messages]
+                : [{ role: 'system', content: SYSTEM_PROMPT }, ...conversation.messages];
         }
 
         const response = await axios.post(
             `${OPENAI_CONFIG.BASE_URL}${OPENAI_CONFIG.ENDPOINTS.CHAT_COMPLETION}`,
             {
                 model: OPENAI_CONFIG.DEFAULT_MODEL,
-                messages,
+                messages: messagesToSend,
                 temperature: OPENAI_CONFIG.TEMPERATURE,
             },
             {

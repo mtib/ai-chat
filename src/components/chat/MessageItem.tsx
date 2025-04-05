@@ -8,6 +8,8 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import StarIcon from '@mui/icons-material/Star';
+import StarBorderIcon from '@mui/icons-material/StarBorder';
 import { Message } from '../../types';
 import Markdown from 'markdown-to-jsx';
 
@@ -17,6 +19,7 @@ interface MessageItemProps {
     onEdit: (index: number, content: string) => void;
     onDelete: (index: number) => void;
     onRetry: (index: number) => void;
+    onToggleStar: (index: number) => void;
     isEditing: boolean;
     editContent: string;
     setEditingMessage: React.Dispatch<React.SetStateAction<{ index: number, content: string; } | null>>;
@@ -28,6 +31,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
     onEdit,
     onDelete,
     onRetry,
+    onToggleStar,
     isEditing,
     editContent,
     setEditingMessage
@@ -64,6 +68,11 @@ const MessageItem: React.FC<MessageItemProps> = ({
         setShowCopySuccess(true);
         setTimeout(() => setShowCopySuccess(false), 2000);
         handleCloseMenu();
+    };
+
+    const handleStarClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onToggleStar(index);
     };
 
     const handleEditMessageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -150,9 +159,25 @@ const MessageItem: React.FC<MessageItemProps> = ({
                         maxWidth: '70%',
                         bgcolor: getPaperBackgroundColor(),
                         borderRadius: 2,
-                        position: 'relative'
+                        position: 'relative',
+                        borderLeft: message.starred ? '3px solid gold' : 'none'
                     }}
                 >
+                    <Box sx={{
+                        position: 'absolute',
+                        top: 8,
+                        right: message.role !== 'system' ? 36 : 8,
+                        opacity: 0.7,
+                        '&:hover': { opacity: 1 }
+                    }}>
+                        <IconButton size="small" onClick={handleStarClick}>
+                            {message.starred ?
+                                <StarIcon fontSize="small" sx={{ color: 'gold' }} /> :
+                                <StarBorderIcon fontSize="small" />
+                            }
+                        </IconButton>
+                    </Box>
+
                     {message.role !== 'system' && (
                         <IconButton
                             size="small"
