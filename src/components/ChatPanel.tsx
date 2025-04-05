@@ -1,10 +1,12 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Box, TextField, Button, Paper, Typography, Avatar, CircularProgress, IconButton, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, TextField, Button, Paper, Typography, Avatar, CircularProgress, IconButton, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip, Snackbar, Alert } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import Markdown from 'markdown-to-jsx';
 import { Conversation } from '../types';
 import { useChat } from '../hooks/useChat';
 
@@ -30,6 +32,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdat
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [selectedMessageIndex, setSelectedMessageIndex] = useState<number | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const [copySnackbar, setCopySnackbar] = useState(false);
 
     useEffect(() => {
         scrollToBottom();
@@ -65,6 +68,14 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdat
         handleCloseMenu();
     };
 
+    const handleCopyMessage = () => {
+        if (selectedMessageIndex === null) return;
+        const content = localConversation.messages[selectedMessageIndex].content;
+        navigator.clipboard.writeText(content);
+        setCopySnackbar(true);
+        handleCloseMenu();
+    };
+
     const handleEditSave = () => {
         if (!editingMessage) return;
         editMessage(editingMessage.index, editingMessage.content);
@@ -84,11 +95,36 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdat
         handleCloseMenu();
     };
 
+    // Handle export of conversation
+    const handleExportConversation = () => {
+        const dataStr = JSON.stringify(localConversation, null, 2);
+        const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+
+        const exportFileDefaultName = `${localConversation.title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.json`;
+
+        const linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', exportFileDefaultName);
+        linkElement.click();
+    };
+
     return (
         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-                {localConversation.title}
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6">
+                    {localConversation.title}
+                </Typography>
+                <Box>
+                    <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={handleExportConversation}
+                        sx={{ mr: 1 }}
+                    >
+                        Export Conversation
+                    </Button>
+                </Box>
+            </Box>
 
             {/* Messages area */}
             <Paper
@@ -132,9 +168,20 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdat
                                 pr: message.role !== 'system' ? 4 : 2  // Add padding for the menu button
                             }}
                         >
-                            <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                                {message.content}
-                            </Typography>
+                            <Box className="message-content">
+                                <Markdown options={{
+                                    overrides: {
+                                        a: {
+                                            props: {
+                                                target: '_blank',
+                                                rel: 'noopener noreferrer'
+                                            }
+                                        }
+                                    }
+                                }}>
+                                    {message.content}
+                                </Markdown>
+                            </Box>
 
                             {/* Only show options for user and assistant messages */}
                             {message.role !== 'system' && (
@@ -166,6 +213,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdat
                 open={Boolean(anchorEl)}
                 onClose={handleCloseMenu}
             >
+                <MenuItem onClick={handleCopyMessage}>
+                    <ContentCopyIcon fontSize="small" sx={{ mr: 1 }} />
+                    Copy Content
+                </MenuItem>
                 <MenuItem onClick={handleEditMessage}>
                     <EditIcon fontSize="small" sx={{ mr: 1 }} />
                     Edit
@@ -183,8 +234,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdat
                     )}
             </Menu>
 
-            {/* Edit message dialog */}
-            <Dialog open={editingMessage !== null} onClose={() => setEditingMessage(null)}>
+            {/* Edit message dialog - made bigger */}
+            <Dialog
+                open={editingMessage !== null}
+                onClose={() => setEditingMessage(null)}
+                maxWidth="md"
+                fullWidth
+            >
                 <DialogTitle>
                     Edit Message
                     {editingMessage && localConversation.messages[editingMessage.index].role === 'assistant' && (
@@ -197,8 +253,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdat
                     <TextField
                         fullWidth
                         multiline
-                        minRows={3}
-                        maxRows={10}
+                        minRows={10}
+                        maxRows={20}
                         value={editingMessage?.content || ''}
                         onChange={(e) => setEditingMessage(prev =>
                             prev ? { ...prev, content: e.target.value } : null
@@ -216,6 +272,18 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdat
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            {/* Copy confirmation snackbar */}
+            <Snackbar
+                open={copySnackbar}
+                autoHideDuration={3000}
+                onClose={() => setCopySnackbar(false)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert severity="success" onClose={() => setCopySnackbar(false)}>
+                    Message copied to clipboard!
+                </Alert>
+            </Snackbar>
 
             {/* Input area */}
             <Box component="form" onSubmit={handleSendMessage} sx={{ display: 'flex' }}>

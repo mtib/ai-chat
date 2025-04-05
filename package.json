@@ -4,27 +4,31 @@
     "private": true,
     "type": "module",
     "dependencies": {
-        "@emotion/react": "^11.11.0",
-        "@emotion/styled": "^11.11.0",
-        "@mui/icons-material": "^5.11.16",
-        "@mui/material": "^5.13.0",
-        "axios": "^1.4.0",
-        "react": "^18.2.0",
-        "react-dom": "^18.2.0",
-        "uuid": "^9.0.0"
+        "@emotion/react": "^11.14.0",
+        "@emotion/styled": "^11.14.0",
+        "@mui/icons-material": "^7.0.1",
+        "@mui/material": "^7.0.1",
+        "axios": "^1.8.4",
+        "markdown-to-jsx": "^7.7.4",
+        "react": "^19.1.0",
+        "react-dom": "^19.1.0",
+        "uuid": "^11.1.0"
     },
     "devDependencies": {
-        "@types/node": "^18.15.11",
-        "@types/react": "^18.0.28",
-        "@types/react-dom": "^18.0.11",
-        "@types/uuid": "^9.0.1",
-        "@vitejs/plugin-react": "^3.1.0",
-        "typescript": "^4.9.3",
-        "vite": "^4.2.0"
+        "@types/node": "^22.14.0",
+        "@types/react": "^19.1.0",
+        "@types/react-dom": "^19.1.1",
+        "@types/uuid": "^10.0.0",
+        "@vitejs/plugin-react": "^4.3.4",
+        "typescript": "^5.8.3",
+        "vite": "^6.2.5",
+        "npm-check-updates": "^17.1.16"
     },
     "scripts": {
         "dev": "vite",
         "build": "tsc && vite build",
-        "preview": "vite preview"
+        "preview": "vite preview",
+        "check-updates": "npx npm-check-updates",
+        "update-deps": "npx npm-check-updates -u && npm install"
     }
 }
