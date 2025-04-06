@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Box, Button, ButtonGroup, Tooltip, useMediaQuery, Theme, Paper } from '@mui/material';
+import { Box, Button, ButtonGroup, Tooltip, useMediaQuery, Theme, Paper, TextField } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import ImageIcon from '@mui/icons-material/Image';
@@ -14,13 +14,10 @@ interface MessageInputProps {
 
 const MessageInput: React.FC<MessageInputProps> = ({ value, onChange, onSubmit, onImage, disabled }) => {
     const isMobile = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'));
-    const inputRef = useRef<HTMLDivElement>(null);
     const [isFocused, setIsFocused] = useState(false);
 
-    const handleChange = () => {
-        if (inputRef.current) {
-            onChange(inputRef.current.innerText);
-        }
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        onChange(e.target.value);
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -31,13 +28,6 @@ const MessageInput: React.FC<MessageInputProps> = ({ value, onChange, onSubmit, 
             }
         }
     };
-
-    // Ensure the input always shows the current value
-    React.useEffect(() => {
-        if (inputRef.current && inputRef.current.innerText !== value) {
-            inputRef.current.innerText = value;
-        }
-    }, [value]);
 
     // Determine which icon to show based on input state
     const primaryButtonIcon = value.trim() ? <SendIcon /> : <PsychologyIcon />;
@@ -67,40 +57,36 @@ const MessageInput: React.FC<MessageInputProps> = ({ value, onChange, onSubmit, 
                     overflow: 'hidden',
                 }}
             >
-                <div
-                    ref={inputRef}
-                    contentEditable={!disabled}
-                    onInput={handleChange}
+                <TextField
+                    multiline
+                    fullWidth
+                    variant="standard"
+                    value={value}
+                    onChange={handleChange}
                     onKeyDown={handleKeyDown}
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => setIsFocused(false)}
-                    style={{
-                        fontFamily: 'Sono, monospace',
-                        padding: '8px 14px',
-                        minHeight: '18px',
-                        maxHeight: isMobile ? '150px' : '100px',
-                        width: '100%',
-                        overflowY: 'auto',
-                        outline: 'none',
-                        wordBreak: 'break-word',
-                        cursor: disabled ? 'not-allowed' : 'text',
-                        opacity: disabled ? 0.7 : 1,
-                        backgroundColor: disabled ? 'rgba(0, 0, 0, 0.05)' : 'inherit'
+                    disabled={disabled}
+                    placeholder={isMobile ? "Message..." : "Type your message... (Ctrl+Enter to send)"}
+                    InputProps={{
+                        disableUnderline: true,
+                        sx: {
+                            fontFamily: 'Sono, monospace',
+                            padding: '0px',
+                            height: '100%',
+                            '& textarea': {
+                                padding: '8px 14px',
+                                minHeight: '18px',
+                                maxHeight: isMobile ? '150px' : '100%',
+                                overflowY: 'auto',
+                                wordBreak: 'break-word',
+                                cursor: disabled ? 'not-allowed' : 'text',
+                                opacity: disabled ? 0.7 : 1,
+                                backgroundColor: disabled ? 'rgba(0, 0, 0, 0.05)' : 'inherit'
+                            }
+                        }
                     }}
                 />
-                {(!value || value == "\x0a") && (
-                    <div
-                        style={{
-                            position: 'absolute',
-                            top: '8px',
-                            left: '14px',
-                            color: 'rgba(255, 255, 255, 0.6)',
-                            pointerEvents: 'none',
-                        }}
-                    >
-                        {isMobile ? "Message..." : "Type your message... (Ctrl+Enter to send)"}
-                    </div>
-                )}
             </Paper>
             <Box
                 sx={{
