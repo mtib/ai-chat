@@ -4,12 +4,24 @@
 const STATIC_CACHE_NAME = 'story-crafter-static-v1';
 const DYNAMIC_CACHE_NAME = 'story-crafter-dynamic-v1';
 const ASSET_CACHE_NAME = 'story-crafter-assets-v1';
+const DALLE_IMAGES_CACHE_NAME = 'story-crafter-dalle-images-v1'; // New dedicated cache for DALL-E images
+const GOOGLE_FONTS_CACHE_NAME = 'story-crafter-google-fonts-v1'; // New dedicated cache for Google Fonts
 
 // Resources to precache for immediate offline use
 const STATIC_ASSETS = [
     '/',
     '/index.html',
 ];
+
+// Helper function to check if URL is from Azure Blob Storage (DALL-E images)
+const isDalleImage = (url) => {
+    return url.includes('oaidalleapiprodscus.blob.core.windows.net');
+};
+
+// Helper function to check if URL is from Google Fonts
+const isGoogleFont = (url) => {
+    return url.includes('fonts.googleapis.com') || url.includes('fonts.gstatic.com');
+};
 
 // The install handler takes care of precaching static resources
 self.addEventListener('install', (event) => {
@@ -33,7 +45,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
     console.log('[Service Worker] Activating Service Worker...');
 
-    const currentCaches = [STATIC_CACHE_NAME, DYNAMIC_CACHE_NAME, ASSET_CACHE_NAME];
+    const currentCaches = [STATIC_CACHE_NAME, DYNAMIC_CACHE_NAME, ASSET_CACHE_NAME, DALLE_IMAGES_CACHE_NAME, GOOGLE_FONTS_CACHE_NAME];
 
     event.waitUntil(
         caches
@@ -61,7 +73,85 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     // Skip cross-origin requests
     if (!event.request.url.startsWith(self.location.origin)) {
-        return;
+        // Special handling for DALL-E images from Azure Blob Storage
+        if (isDalleImage(event.request.url)) {
+            event.respondWith(
+                caches.match(event.request).then(cachedResponse => {
+                    if (cachedResponse) {
+                        // Return cached DALL-E image if we have it
+                        console.log('[Service Worker] Serving cached DALL-E image:', event.request.url);
+                        return cachedResponse;
+                    }
+
+                    console.log('[Service Worker] Fetching DALL-E image from network:', event.request.url);
+                    // Otherwise fetch from network and cache permanently
+                    return fetch(event.request)
+                        .then(response => {
+                            // Clone the response before using it
+                            const clonedResponse = response.clone();
+
+                            if (!response) {
+                                console.log('[Service Worker] No response from fetch for DALL-E image:', event.request.url);
+                                return null;
+                            }
+
+                            // Store in DALL-E images cache permanently
+                            console.log('[Service Worker] Caching DALL-E image:', event.request.url);
+                            caches.open(DALLE_IMAGES_CACHE_NAME)
+                                .then(cache => cache.put(event.request, clonedResponse));
+
+                            return response;
+                        })
+                        .catch(err => {
+                            console.log('[Service Worker] DALL-E image fetch failed:', err);
+                            // Return a fallback or null
+                            return null;
+                        });
+                })
+            );
+            return;
+        }
+
+        // Special handling for Google Fonts
+        if (isGoogleFont(event.request.url)) {
+            event.respondWith(
+                caches.match(event.request).then(cachedResponse => {
+                    if (cachedResponse) {
+                        // Return cached Google Font if we have it
+                        console.log('[Service Worker] Serving cached Google Font:', event.request.url);
+                        return cachedResponse;
+                    }
+
+                    console.log('[Service Worker] Fetching Google Font from network:', event.request.url);
+                    // Otherwise fetch from network and cache permanently
+                    return fetch(event.request)
+                        .then(response => {
+                            // Clone the response before using it
+                            const clonedResponse = response.clone();
+
+                            if (!response) {
+                                console.log('[Service Worker] No response from fetch for Google Font:', event.request.url);
+                                return null;
+                            }
+
+                            // Store in Google Fonts cache permanently
+                            console.log('[Service Worker] Caching Google Font:', event.request.url);
+                            caches.open(GOOGLE_FONTS_CACHE_NAME)
+                                .then(cache => cache.put(event.request, clonedResponse));
+
+                            return response;
+                        })
+                        .catch(err => {
+                            console.log('[Service Worker] Google Font fetch failed:', err);
+                            // Return a fallback or null
+                            return null;
+                        });
+                })
+            );
+            return;
+        }
+
+        return; // For other cross-origin requests, just pass through
     }
 
     // Skip non-GET requests
