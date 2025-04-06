@@ -9,12 +9,23 @@ interface MessageInputProps {
     onChange: (value: string) => void;
     onSubmit: (e: React.FormEvent) => void;
     onImage: () => void;
+    onFocus?: () => void;
+    onBlur?: () => void;
     disabled: boolean;
 }
 
-const MessageInput: React.FC<MessageInputProps> = ({ value, onChange, onSubmit, onImage, disabled }) => {
+const MessageInput: React.FC<MessageInputProps> = ({
+    value,
+    onChange,
+    onSubmit,
+    onImage,
+    onFocus,
+    onBlur,
+    disabled
+}) => {
     const isMobile = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'));
     const [isFocused, setIsFocused] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         onChange(e.target.value);
@@ -29,6 +40,23 @@ const MessageInput: React.FC<MessageInputProps> = ({ value, onChange, onSubmit, 
         }
     };
 
+    const handleFocus = () => {
+        setIsFocused(true);
+        if (onFocus) onFocus();
+    };
+
+    const handleBlur = () => {
+        setIsFocused(false);
+        if (onBlur) onBlur();
+    };
+
+    // When clicking on background elements, blur the input
+    const handleContainerClick = (e: React.MouseEvent) => {
+        if (e.target === e.currentTarget && inputRef.current) {
+            inputRef.current.blur();
+        }
+    };
+
     // Determine which icon to show based on input state
     const primaryButtonIcon = value.trim() ? <SendIcon /> : <PsychologyIcon />;
     const primaryButtonText = value.trim() ? "Send" : "Prompt";
@@ -37,12 +65,15 @@ const MessageInput: React.FC<MessageInputProps> = ({ value, onChange, onSubmit, 
         <Box
             component="form"
             onSubmit={onSubmit}
+            onClick={handleContainerClick}
             sx={{
                 display: 'flex',
                 flexDirection: { xs: 'column', sm: 'row' },
                 gap: { xs: 1, sm: 0 },
                 maxHeight: { xs: 'auto', sm: '120px' },
                 height: { sm: '100%' },
+                // When focused on mobile, expand to use all available space
+                flexGrow: isMobile && isFocused ? 1 : 'initial',
             }}
         >
             <Paper
@@ -55,17 +86,20 @@ const MessageInput: React.FC<MessageInputProps> = ({ value, onChange, onSubmit, 
                     border: isFocused ? '1px solid #1976d2' : '1px solid rgba(0, 0, 0, 0.23)',
                     borderRadius: 1,
                     overflow: 'hidden',
+                    // When focused on mobile, expand to use much more space
+                    height: isMobile && isFocused ? 'calc(100vh - 180px)' : 'auto',
                 }}
             >
                 <TextField
+                    inputRef={inputRef}
                     multiline
                     fullWidth
                     variant="standard"
                     value={value}
                     onChange={handleChange}
                     onKeyDown={handleKeyDown}
-                    onFocus={() => setIsFocused(true)}
-                    onBlur={() => setIsFocused(false)}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
                     disabled={disabled}
                     placeholder={isMobile ? "Message..." : "Type your message... (Ctrl+Enter to send)"}
                     InputProps={{
@@ -77,7 +111,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ value, onChange, onSubmit, 
                             '& textarea': {
                                 padding: '8px 14px',
                                 minHeight: '18px',
-                                maxHeight: isMobile ? '150px' : '100%',
+                                maxHeight: isMobile && isFocused ? '100%' : (isMobile ? '150px' : '100%'),
                                 overflowY: 'auto',
                                 wordBreak: 'break-word',
                                 cursor: disabled ? 'not-allowed' : 'text',
