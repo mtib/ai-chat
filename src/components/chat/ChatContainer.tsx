@@ -12,16 +12,18 @@ interface ChatContainerProps {
 
 const ChatContainer: React.FC<ChatContainerProps> = ({ messages, onSendMessage, isTyping }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const isMobile = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'));
     const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+    const [isInputFocused, setIsInputFocused] = useState(false);
 
-    // Scroll to bottom when new messages are added
+    // Scroll to bottom when new messages are added or when the keyboard opens/closes
     useEffect(() => {
         if (messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
         }
-    }, [messages]);
+    }, [messages, isKeyboardOpen]);
 
     // Detect keyboard open/close on mobile
     useEffect(() => {
@@ -29,21 +31,45 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ messages, onSendMessage, 
 
         const handleResize = () => {
             const heightReduction = window.outerHeight - window.innerHeight;
-            const newIsKeyboardOpen = heightReduction > window.outerHeight * 0.3;
+            const newIsKeyboardOpen = heightReduction > window.outerHeight * 0.25;
 
-            setIsKeyboardOpen(newIsKeyboardOpen);
+            if (newIsKeyboardOpen !== isKeyboardOpen) {
+                setIsKeyboardOpen(newIsKeyboardOpen);
 
-            // Ensure scroll position is maintained when keyboard opens/closes
-            if (newIsKeyboardOpen) {
-                setTimeout(() => {
-                    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-                }, 100);
+                // When keyboard opens, scroll to the bottom
+                if (newIsKeyboardOpen) {
+                    setTimeout(() => {
+                        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                    }, 100);
+                }
             }
         };
 
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
-    }, [isMobile]);
+    }, [isMobile, isKeyboardOpen]);
+
+    // Custom handler for when the input is focused
+    const handleInputFocus = () => {
+        setIsInputFocused(true);
+
+        if (isMobile) {
+            // Delay to allow keyboard to start appearing
+            setTimeout(() => {
+                // Scroll to the end of messages to show the input area
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+
+                // Also scroll the container if needed
+                if (messagesContainerRef.current) {
+                    messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+                }
+            }, 150);
+        }
+    };
+
+    const handleInputBlur = () => {
+        setIsInputFocused(false);
+    };
 
     return (
         <Box
@@ -57,6 +83,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ messages, onSendMessage, 
             }}
         >
             <Box
+                ref={messagesContainerRef}
                 sx={{
                     flexGrow: 1,
                     overflowY: 'auto',
@@ -70,14 +97,24 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ messages, onSendMessage, 
                 ))}
                 <div ref={messagesEndRef} />
             </Box>
-            <Box sx={{
-                position: 'sticky',
-                bottom: 0,
-                width: '100%',
-                backgroundColor: 'background.default',
-                zIndex: 2
-            }}>
-                <ChatInputArea onSendMessage={onSendMessage} isTyping={isTyping} />
+
+            <Box
+                sx={{
+                    position: 'sticky',
+                    bottom: 0,
+                    width: '100%',
+                    backgroundColor: 'background.default',
+                    zIndex: 2,
+                    // Add padding to compensate for keyboard on mobile
+                    paddingBottom: isMobile && isInputFocused ? 2 : 0,
+                }}
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
+            >
+                <ChatInputArea
+                    onSendMessage={onSendMessage}
+                    isTyping={isTyping}
+                />
             </Box>
         </Box>
     );
