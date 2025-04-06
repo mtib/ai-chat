@@ -28,9 +28,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     return (
         <Box sx={{
             display: 'flex',
-            height: '100vh',
+            height: '100%', // Changed from 100vh to 100%
             overflow: 'hidden',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            position: 'absolute', // Add absolute positioning
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0
         }}>
             <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
                 <Toolbar>
@@ -69,7 +74,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 <Box sx={{
                     display: 'flex',
                     flexDirection: 'column',
-                    height: 'calc(100vh - 64px)', // height minus toolbar
+                    height: 'calc(100% - 64px)', // Changed from 100vh
                     overflow: 'hidden'
                 }}>
                     <Sidebar onItemClick={handleDrawerClose} />
@@ -82,7 +87,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                     flexGrow: 1,
                     display: 'flex',
                     flexDirection: 'column',
-                    height: '100vh',
+                    height: 'calc(100% - 64px)', // Changed from 100vh
                     overflow: 'hidden',
                     position: 'relative',
                     marginTop: '64px', // Space for AppBar
