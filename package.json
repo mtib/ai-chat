@@ -26,7 +26,7 @@
     },
     "scripts": {
         "dev": "vite",
-        "build": "tsc && vite build",
+        "build": "vite build && node scripts/inject-build-version.js",
         "preview": "vite preview",
         "check-updates": "npx npm-check-updates",
         "update-deps": "npx npm-check-updates -u && npm install"

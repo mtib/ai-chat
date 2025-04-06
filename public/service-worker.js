@@ -1,11 +1,14 @@
 // This is a service worker for caching assets and providing offline functionality
 
+// Build version from environment variables or fallback to timestamp
+const BUILD_VERSION = Date.now().toString();
+
 // Cache names with versioning for easier updates
-const STATIC_CACHE_NAME = 'story-crafter-static-v1';
-const DYNAMIC_CACHE_NAME = 'story-crafter-dynamic-v1';
-const ASSET_CACHE_NAME = 'story-crafter-assets-v1';
-const DALLE_IMAGES_CACHE_NAME = 'story-crafter-dalle-images-v1'; // New dedicated cache for DALL-E images
-const GOOGLE_FONTS_CACHE_NAME = 'story-crafter-google-fonts-v1'; // New dedicated cache for Google Fonts
+const STATIC_CACHE_NAME = `story-crafter-static-${BUILD_VERSION}`;
+const DYNAMIC_CACHE_NAME = `story-crafter-dynamic-${BUILD_VERSION}`;
+const ASSET_CACHE_NAME = `story-crafter-assets-${BUILD_VERSION}`;
+const DALLE_IMAGES_CACHE_NAME = `story-crafter-dalle-images-v1`;
+const GOOGLE_FONTS_CACHE_NAME = `story-crafter-google-fonts-v1`;
 
 // Resources to precache for immediate offline use
 const STATIC_ASSETS = [
