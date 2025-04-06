@@ -20,6 +20,27 @@ import {
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { Conversation } from '../../types';
 
+// Function to format the time (relative or absolute)
+const formatTime = (timestamp?: string): string => {
+    if (!timestamp) return '';
+
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMinutes = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMinutes / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    // Show relative time if recent
+    if (diffMinutes < 1) return 'Just now';
+    if (diffMinutes < 60) return `${diffMinutes}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+
+    // Otherwise show date
+    return date.toLocaleDateString();
+};
+
 interface ConversationItemProps {
     conversation: Conversation;
     isActive: boolean;
@@ -40,6 +61,9 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const open = Boolean(anchorEl);
+
+    // Get the last modified time to display
+    const lastModified = formatTime(conversation.lastModified || conversation.updatedAt);
 
     const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
         event.stopPropagation(); // Prevent triggering the list item click
@@ -167,19 +191,27 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
                     onClick={onClick}
                     sx={{
                         display: 'flex',
-                        justifyContent: 'space-between',
+                        flexDirection: 'column',
+                        alignItems: 'flex-start',
                         py: 0.5
                     }}
                 >
-                    <ListItemText
-                        primary={conversation.title}
-                        primaryTypographyProps={{
-                            noWrap: true,
-                            fontFamily: 'Sono',
-                            fontSize: '0.9rem'
-                        }}
-                    />
-                    <Tooltip title="Options">
+                    <Box sx={{
+                        display: 'flex',
+                        width: '100%',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                    }}>
+                        <ListItemText
+                            sx={{
+                                '& .MuiListItemText-secondary': {
+                                    fontSize: '0.7rem',
+                                    color: 'primary.main',
+                                }
+                            }}
+                            primary={conversation.title}
+                            secondary={lastModified}
+                        />
                         <IconButton
                             size="small"
                             edge="end"
@@ -188,7 +220,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
                         >
                             <MoreVertIcon fontSize="small" />
                         </IconButton>
-                    </Tooltip>
+                    </Box>
                 </ListItemButton>
                 <Menu
                     anchorEl={anchorEl}

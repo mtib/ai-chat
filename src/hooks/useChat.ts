@@ -24,9 +24,16 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
 
     // Update local state when the conversation prop changes
     const updateConversation = useCallback((updatedConversation: Conversation) => {
-        setLocalConversation(updatedConversation);
+        // Always update lastModified when conversation is updated
+        const now = new Date().toISOString();
+        const conversationWithTimestamp = {
+            ...updatedConversation,
+            lastModified: now
+        };
+
+        setLocalConversation(conversationWithTimestamp);
         if (onConversationUpdate) {
-            onConversationUpdate(updatedConversation);
+            onConversationUpdate(conversationWithTimestamp);
         }
     }, [onConversationUpdate]);
 
@@ -43,7 +50,8 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
 
         const updatedConversation = {
             ...localConversation,
-            messages: newMessages
+            messages: newMessages,
+            lastModified: new Date().toISOString() // Update lastModified
         };
 
         updateConversation(updatedConversation);
@@ -56,9 +64,11 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
 
         // Add user message to the conversation immediately in UI
         const userMessage: Message = { role: 'user', content: messageText };
+        const now = new Date().toISOString();
         const updatedConversation: Conversation = {
             ...localConversation,
             messages: [...localConversation.messages, userMessage],
+            lastModified: now
         };
 
         // Update local state immediately for instant feedback
@@ -74,6 +84,7 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
             const finalConversation: Conversation = {
                 ...updatedConversation,
                 messages: [...updatedConversation.messages, { role: 'assistant', content: aiResponse }],
+                lastModified: new Date().toISOString() // Update timestamp again after getting response
             };
 
             // Save conversation to file
@@ -91,6 +102,7 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
                     ...updatedConversation.messages,
                     { role: 'system', content: `Error: ${errorMessage}` },
                 ],
+                lastModified: new Date().toISOString()
             };
 
             updateConversation(errorConversation);
@@ -105,9 +117,11 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
 
         // Add user message to the conversation immediately in UI
         const userMessage: Message = { role: 'user', content: prompt };
+        const now = new Date().toISOString();
         const updatedConversation: Conversation = {
             ...localConversation,
             messages: [...localConversation.messages, userMessage],
+            lastModified: now
         };
 
         // Update local state immediately for instant feedback
@@ -129,6 +143,7 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
                         content: `![Generated image](${imageResponse.imageUrl})\n\n${imageResponse.revisedPrompt || 'Image generated successfully.'}`
                     }
                 ],
+                lastModified: new Date().toISOString()
             };
 
             // Save conversation to file
@@ -146,6 +161,7 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
                     ...updatedConversation.messages,
                     { role: 'system', content: `Error generating image: ${errorMessage}` },
                 ],
+                lastModified: new Date().toISOString()
             };
 
             updateConversation(errorConversation);
@@ -169,6 +185,7 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
             const finalConversation: Conversation = {
                 ...localConversation,
                 messages: [...localConversation.messages, { role: 'assistant', content: suggestedPrompt }],
+                lastModified: new Date().toISOString()
             };
 
             // Save conversation to file
@@ -185,13 +202,14 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
                     ...localConversation.messages,
                     { role: 'system', content: `Error generating prompt: ${errorMessage}` },
                 ],
+                lastModified: new Date().toISOString()
             };
 
             updateConversation(errorConversation);
         } finally {
             setLoading(false);
         }
-    }, [localConversation, conversation, loading, updateConversation]);
+    }, [localConversation, loading, updateConversation]);
 
     // Handle form submission - now decides between send or prompt based on input
     const handleSendMessage = useCallback((e: React.FormEvent) => {
@@ -220,7 +238,8 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
 
         const updatedConversation = {
             ...localConversation,
-            messages: newMessages
+            messages: newMessages,
+            lastModified: new Date().toISOString()
         };
 
         updateConversation(updatedConversation);
@@ -234,7 +253,8 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
 
         const updatedConversation = {
             ...localConversation,
-            messages: newMessages
+            messages: newMessages,
+            lastModified: new Date().toISOString()
         };
 
         updateConversation(updatedConversation);
@@ -255,7 +275,8 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
 
         const updatedConversation = {
             ...localConversation,
-            messages: newMessages
+            messages: newMessages,
+            lastModified: new Date().toISOString()
         };
 
         // Update local state
@@ -269,7 +290,8 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
             // Add the new AI response
             const finalConversation = {
                 ...updatedConversation,
-                messages: [...newMessages, { role: 'assistant' as const, content: aiResponse }]
+                messages: [...newMessages, { role: 'assistant' as const, content: aiResponse }],
+                lastModified: new Date().toISOString()
             };
 
             // Save and update
@@ -281,7 +303,8 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
 
             const errorConversation = {
                 ...updatedConversation,
-                messages: [...newMessages, { role: 'system' as const, content: `Error: ${errorMessage}` }]
+                messages: [...newMessages, { role: 'system' as const, content: `Error: ${errorMessage}` }],
+                lastModified: new Date().toISOString()
             };
 
             updateConversation(errorConversation);

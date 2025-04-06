@@ -24,15 +24,21 @@ export const saveConversationToFile = async (conversation: Conversation): Promis
         // Get all existing conversations
         const conversations = await loadConversations();
 
+        // Make sure lastModified is set to current time
+        const updatedConversation = {
+            ...conversation,
+            lastModified: new Date().toISOString()
+        };
+
         // Find if this conversation already exists
         const index = conversations.findIndex(c => c.id === conversation.id);
 
         if (index !== -1) {
             // Update existing conversation
-            conversations[index] = conversation;
+            conversations[index] = updatedConversation;
         } else {
             // Add new conversation
-            conversations.push(conversation);
+            conversations.push(updatedConversation);
         }
 
         // Save all conversations back to storage
@@ -62,11 +68,13 @@ export const deleteConversation = async (conversationId: string): Promise<Conver
 
 // This function is only used as a fallback and should not add default system messages
 export const createNewConversation = async (title: string = 'New Conversation'): Promise<Conversation> => {
+    const now = new Date().toISOString();
     const newConversation: Conversation = {
         id: uuidv4(),
         title,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: now,
+        updatedAt: now,
+        lastModified: now,
         messages: []
     };
 
@@ -83,9 +91,13 @@ export const updateConversationTitle = async (conversationId: string, newTitle: 
             throw new Error('Conversation not found');
         }
 
-        const conversation = { ...conversations[conversationIndex] };
-        conversation.title = newTitle;
-        conversation.updatedAt = new Date().toISOString();
+        const now = new Date().toISOString();
+        const conversation = {
+            ...conversations[conversationIndex],
+            title: newTitle,
+            updatedAt: now,
+            lastModified: now
+        };
 
         // Update the conversation in the array
         conversations[conversationIndex] = conversation;

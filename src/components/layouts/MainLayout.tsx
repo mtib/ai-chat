@@ -3,7 +3,6 @@ import { Box, Drawer, AppBar, Toolbar, Typography, IconButton, useMediaQuery, Th
 import ChatIcon from '@mui/icons-material/Chat';
 import MenuIcon from '@mui/icons-material/Menu';
 import Sidebar from '../sidebar/Sidebar';
-import ApiKeyModal from '../ApiKeyModal';
 
 const drawerWidth = 240;
 

@@ -69,7 +69,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
                 <TextField
                     fullWidth
                     size="small"
-                    placeholder="Search conversations..."
+                    placeholder="Search..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     InputProps={{

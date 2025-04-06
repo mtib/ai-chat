@@ -15,7 +15,7 @@ const ChatContent: React.FC = () => {
                 />
             ) : (
                 <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-                    <Typography variant="h6" color="text.secondary" fontFamily="Sono">
+                    <Typography variant="h6" color="text.secondary" fontFamily="Sono" align='center'>
                         Create a new conversation or select an existing one
                     </Typography>
                 </Box>

@@ -16,27 +16,38 @@ export const useConversations = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isLoading, setIsLoading] = useState(true);
 
+    // Sort conversations by lastModified timestamp (most recent first)
+    const sortConversationsByModified = (convs: Conversation[]): Conversation[] => {
+        return [...convs].sort((a, b) => {
+            const timeA = a.lastModified || a.updatedAt;
+            const timeB = b.lastModified || b.updatedAt;
+            return new Date(timeB).getTime() - new Date(timeA).getTime();
+        });
+    };
+
     // Load initial conversations
     useEffect(() => {
         const loadInitialConversations = async () => {
             setIsLoading(true);
             try {
                 const loadedConversations = await loadConversations();
-                setConversations(loadedConversations);
+                // Sort conversations by lastModified timestamp
+                const sortedConversations = sortConversationsByModified(loadedConversations);
+                setConversations(sortedConversations);
 
                 // Try to restore previously active conversation from localStorage
                 const savedActiveId = localStorage.getItem(ACTIVE_CONVERSATION_KEY);
-                if (savedActiveId && loadedConversations.length > 0) {
-                    const savedConversation = loadedConversations.find(c => c.id === savedActiveId);
+                if (savedActiveId && sortedConversations.length > 0) {
+                    const savedConversation = sortedConversations.find(c => c.id === savedActiveId);
                     if (savedConversation) {
                         setActiveConversation(savedConversation);
                     } else {
                         // Fallback to first conversation if saved one not found
-                        setActiveConversation(loadedConversations[0]);
+                        setActiveConversation(sortedConversations[0]);
                     }
-                } else if (loadedConversations.length > 0) {
+                } else if (sortedConversations.length > 0) {
                     // Default to first conversation
-                    setActiveConversation(loadedConversations[0]);
+                    setActiveConversation(sortedConversations[0]);
                 }
             } catch (error) {
                 console.error('Failed to load conversations:', error);
@@ -61,21 +72,31 @@ export const useConversations = () => {
     // Create a new conversation - Modified to accept a conversation parameter
     const handleCreateConversation = useCallback(async (newConversation?: Conversation) => {
         try {
+            const now = new Date().toISOString();
+
             // Either use the provided conversation or create a default one
             if (!newConversation) {
                 newConversation = {
                     id: Date.now().toString(),
                     title: `New Conversation ${conversations.length + 1}`,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
+                    createdAt: now,
+                    updatedAt: now,
+                    lastModified: now,
                     messages: []
+                };
+            } else if (!newConversation.lastModified) {
+                // Add lastModified if not present
+                newConversation = {
+                    ...newConversation,
+                    lastModified: now
                 };
             }
 
             // Save the conversation to storage
             await saveConversationToFile(newConversation);
 
-            setConversations(prev => [...prev, newConversation!]);
+            // Resort conversations with the new one
+            setConversations(prev => sortConversationsByModified([...prev, newConversation!]));
             handleSetActiveConversation(newConversation);
             return newConversation;
         } catch (error) {
@@ -86,17 +107,26 @@ export const useConversations = () => {
 
     // Update a conversation
     const handleUpdateConversation = useCallback((updatedConversation: Conversation) => {
+        // Ensure we have lastModified timestamp
+        const conversationWithTimestamp = {
+            ...updatedConversation,
+            lastModified: new Date().toISOString()
+        };
+
         // Ensure we save the updated conversation to storage
-        saveConversationToFile(updatedConversation).catch(err => {
+        saveConversationToFile(conversationWithTimestamp).catch(err => {
             console.error('Failed to save updated conversation:', err);
         });
 
-        setConversations(prev =>
-            prev.map(c => c.id === updatedConversation.id ? updatedConversation : c)
-        );
+        setConversations(prev => {
+            const newList = prev.map(c =>
+                c.id === conversationWithTimestamp.id ? conversationWithTimestamp : c
+            );
+            return sortConversationsByModified(newList);
+        });
 
-        if (activeConversation?.id === updatedConversation.id) {
-            handleSetActiveConversation(updatedConversation);
+        if (activeConversation?.id === conversationWithTimestamp.id) {
+            handleSetActiveConversation(conversationWithTimestamp);
         }
     }, [activeConversation, handleSetActiveConversation]);
 
@@ -106,16 +136,19 @@ export const useConversations = () => {
             // Delete from storage first
             const updatedConversations = await deleteConversationFile(conversationId);
 
+            // Sort the resulting conversations
+            const sortedConversations = sortConversationsByModified(updatedConversations);
+
             // Update the conversations state
-            setConversations(updatedConversations);
+            setConversations(sortedConversations);
 
             // Handle active conversation change if it was deleted
             if (activeConversation && activeConversation.id === conversationId) {
-                const newActiveConversation = updatedConversations.length > 0 ? updatedConversations[0] : null;
+                const newActiveConversation = sortedConversations.length > 0 ? sortedConversations[0] : null;
                 handleSetActiveConversation(newActiveConversation);
             }
 
-            return updatedConversations;
+            return sortedConversations;
         } catch (error) {
             console.error('Failed to delete conversation:', error);
             return conversations;
@@ -132,10 +165,11 @@ export const useConversations = () => {
                 throw new Error("Failed to update conversation title");
             }
 
-            // Update local state
-            setConversations(prev =>
-                prev.map(c => c.id === conversationId ? updatedConversation : c)
-            );
+            // Update local state and resort
+            setConversations(prev => {
+                const newList = prev.map(c => c.id === conversationId ? updatedConversation : c);
+                return sortConversationsByModified(newList);
+            });
 
             // Update active conversation if needed
             if (activeConversation?.id === conversationId) {
