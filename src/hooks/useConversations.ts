@@ -3,6 +3,9 @@ import { Conversation } from '../types';
 import { loadConversations, saveConversationToFile, deleteConversation as deleteConversationFile, updateConversationTitle as updateConversationTitleFile } from '../utils/fileUtils';
 import { filterConversations } from '../utils/searchUtils';
 
+// Storage key for active conversation ID
+const ACTIVE_CONVERSATION_KEY = 'active_conversation_id';
+
 /**
  * Hook to manage conversations including loading, creating, updating, deleting
  * and filtering conversations based on search
@@ -20,7 +23,19 @@ export const useConversations = () => {
             try {
                 const loadedConversations = await loadConversations();
                 setConversations(loadedConversations);
-                if (loadedConversations.length > 0) {
+
+                // Try to restore previously active conversation from localStorage
+                const savedActiveId = localStorage.getItem(ACTIVE_CONVERSATION_KEY);
+                if (savedActiveId && loadedConversations.length > 0) {
+                    const savedConversation = loadedConversations.find(c => c.id === savedActiveId);
+                    if (savedConversation) {
+                        setActiveConversation(savedConversation);
+                    } else {
+                        // Fallback to first conversation if saved one not found
+                        setActiveConversation(loadedConversations[0]);
+                    }
+                } else if (loadedConversations.length > 0) {
+                    // Default to first conversation
                     setActiveConversation(loadedConversations[0]);
                 }
             } catch (error) {
@@ -31,6 +46,16 @@ export const useConversations = () => {
         };
 
         loadInitialConversations();
+    }, []);
+
+    // Custom setter for active conversation that also saves to localStorage
+    const handleSetActiveConversation = useCallback((conversation: Conversation | null) => {
+        setActiveConversation(conversation);
+        if (conversation) {
+            localStorage.setItem(ACTIVE_CONVERSATION_KEY, conversation.id);
+        } else {
+            localStorage.removeItem(ACTIVE_CONVERSATION_KEY);
+        }
     }, []);
 
     // Create a new conversation - Modified to accept a conversation parameter
@@ -51,13 +76,13 @@ export const useConversations = () => {
             await saveConversationToFile(newConversation);
 
             setConversations(prev => [...prev, newConversation!]);
-            setActiveConversation(newConversation);
+            handleSetActiveConversation(newConversation);
             return newConversation;
         } catch (error) {
             console.error('Failed to create conversation:', error);
             return null;
         }
-    }, [conversations.length]);
+    }, [conversations.length, handleSetActiveConversation]);
 
     // Update a conversation
     const handleUpdateConversation = useCallback((updatedConversation: Conversation) => {
@@ -71,9 +96,9 @@ export const useConversations = () => {
         );
 
         if (activeConversation?.id === updatedConversation.id) {
-            setActiveConversation(updatedConversation);
+            handleSetActiveConversation(updatedConversation);
         }
-    }, [activeConversation]);
+    }, [activeConversation, handleSetActiveConversation]);
 
     // Delete a conversation
     const handleDeleteConversation = useCallback(async (conversationId: string): Promise<Conversation[]> => {
@@ -87,7 +112,7 @@ export const useConversations = () => {
             // Handle active conversation change if it was deleted
             if (activeConversation && activeConversation.id === conversationId) {
                 const newActiveConversation = updatedConversations.length > 0 ? updatedConversations[0] : null;
-                setActiveConversation(newActiveConversation);
+                handleSetActiveConversation(newActiveConversation);
             }
 
             return updatedConversations;
@@ -95,7 +120,7 @@ export const useConversations = () => {
             console.error('Failed to delete conversation:', error);
             return conversations;
         }
-    }, [activeConversation, conversations]);
+    }, [activeConversation, conversations, handleSetActiveConversation]);
 
     // Update conversation title
     const handleUpdateTitle = useCallback(async (conversationId: string, newTitle: string) => {
@@ -114,7 +139,7 @@ export const useConversations = () => {
 
             // Update active conversation if needed
             if (activeConversation?.id === conversationId) {
-                setActiveConversation(updatedConversation);
+                handleSetActiveConversation(updatedConversation);
             }
 
             return updatedConversation;
@@ -122,7 +147,7 @@ export const useConversations = () => {
             console.error('Failed to update conversation title:', error);
             return null;
         }
-    }, [activeConversation]);
+    }, [activeConversation, handleSetActiveConversation]);
 
     // Filter conversations based on search query
     const filteredConversations = filterConversations(conversations, searchQuery);
@@ -133,7 +158,7 @@ export const useConversations = () => {
         filteredConversations,
         searchQuery,
         isLoading,
-        setActiveConversation,
+        setActiveConversation: handleSetActiveConversation,
         setSearchQuery,
         createConversation: handleCreateConversation,
         updateConversation: handleUpdateConversation,

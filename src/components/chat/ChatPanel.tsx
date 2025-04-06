@@ -60,6 +60,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdat
                     editingMessage={editingMessage}
                     setEditingMessage={setEditingMessage}
                     loading={loading}
+                    conversationId={localConversation.id}
                 />
             </Paper>
 
