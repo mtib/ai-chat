@@ -1,9 +1,38 @@
+html,
+body,
+#root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Improve scrolling behavior inside containers */
+.scroll-container {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+    height: 100%;
+}
+
+/* Prevent Safari's elastic overscroll */
 body {
     margin: 0;
     padding: 0;
     font-family: 'Roboto', 'Helvetica Neue', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior-y: none;
 }
 
 code {
@@ -39,4 +68,11 @@ a:hover {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #777;
+}
+
+/* Ensure inputs are visible when keyboard opens */
+input,
+textarea {
+    font-size: 16px;
+    /* Prevents zoom on iOS */
 }

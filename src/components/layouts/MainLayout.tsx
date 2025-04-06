@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Drawer, AppBar, Toolbar, Typography, IconButton, useMediaQuery, Theme } from '@mui/material';
 import ChatIcon from '@mui/icons-material/Chat';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -14,6 +14,17 @@ interface MainLayoutProps {
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     const isMobile = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'));
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [windowHeight, setWindowHeight] = useState(window.innerHeight);
+
+    // Add resize listener to handle mobile keyboard and orientation changes
+    useEffect(() => {
+        const handleResize = () => {
+            setWindowHeight(window.innerHeight);
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const handleDrawerToggle = () => {
         setMobileOpen(!mobileOpen);
@@ -26,7 +37,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     };
 
     return (
-        <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+        <Box sx={{
+            display: 'flex',
+            height: `${windowHeight}px`,
+            overflow: 'hidden',
+            flexDirection: 'column'
+        }}>
             <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
                 <Toolbar>
                     {isMobile && (
@@ -57,7 +73,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                     [`& .MuiDrawer-paper`]: {
                         width: drawerWidth,
                         boxSizing: 'border-box',
-                        height: '100%',
+                        height: `${windowHeight}px`,
                         overflow: 'hidden',
                     },
                 }}
@@ -66,7 +82,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 <Box sx={{
                     display: 'flex',
                     flexDirection: 'column',
-                    height: 'calc(100% - 64px)', // height minus toolbar
+                    height: `calc(${windowHeight}px - 64px)`, // height minus toolbar
                     overflow: 'hidden'
                 }}>
                     <Sidebar onItemClick={handleDrawerClose} />
@@ -77,16 +93,24 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 flexGrow: 1,
                 display: 'flex',
                 flexDirection: 'column',
-                height: '100vh',
-                overflow: 'hidden'
+                height: `${windowHeight}px`,
+                overflow: 'hidden',
+                position: 'relative',
+                marginTop: '64px', // Space for AppBar
+                width: isMobile ? '100%' : `calc(100% - ${drawerWidth}px)`,
+                ml: isMobile ? 0 : `${drawerWidth}px`,
             }}>
-                <Toolbar /> {/* This creates space for the AppBar */}
                 <Box sx={{
                     p: { xs: 1, sm: 2, md: 3 }, // Responsive padding
                     flexGrow: 1,
                     display: 'flex',
                     flexDirection: 'column',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
                 }}>
                     {children}
                 </Box>
