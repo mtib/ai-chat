@@ -1,5 +1,5 @@
-import React from 'react';
-import { Box, TextField, Button, ButtonGroup, Tooltip } from '@mui/material';
+import React, { useRef, useState } from 'react';
+import { Box, Button, ButtonGroup, Tooltip, useMediaQuery, Theme, Paper } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import ImageIcon from '@mui/icons-material/Image';
@@ -8,13 +8,19 @@ interface MessageInputProps {
     value: string;
     onChange: (value: string) => void;
     onSubmit: (e: React.FormEvent) => void;
-    onImage: () => void; // New prop for image generation
+    onImage: () => void;
     disabled: boolean;
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({ value, onChange, onSubmit, onImage, disabled }) => {
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        onChange(e.target.value);
+    const isMobile = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'));
+    const inputRef = useRef<HTMLDivElement>(null);
+    const [isFocused, setIsFocused] = useState(false);
+
+    const handleChange = () => {
+        if (inputRef.current) {
+            onChange(inputRef.current.innerText);
+        }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -26,41 +32,91 @@ const MessageInput: React.FC<MessageInputProps> = ({ value, onChange, onSubmit, 
         }
     };
 
+    // Ensure the input always shows the current value
+    React.useEffect(() => {
+        if (inputRef.current && inputRef.current.innerText !== value) {
+            inputRef.current.innerText = value;
+        }
+    }, [value]);
+
     // Determine which icon to show based on input state
     const primaryButtonIcon = value.trim() ? <SendIcon /> : <PsychologyIcon />;
-    const primaryButtonTooltip = value.trim() ? "Send message" : "Generate AI prompt";
+    const primaryButtonText = value.trim() ? "Send" : "Prompt";
 
     return (
-        <Box component="form" onSubmit={onSubmit} sx={{ display: 'flex', minHeight: '100px' }}>
-            <TextField
-                fullWidth
-                placeholder="Type your message... (Ctrl+Enter to send)"
-                value={value}
-                onChange={handleChange}
-                onKeyDown={handleKeyDown}
-                multiline
-                minRows={3}
-                maxRows={6}
-                disabled={disabled}
-                sx={{ mr: 1 }}
-                InputProps={{
-                    sx: {
-                        fontFamily: 'Sono',
-                    }
+        <Box
+            component="form"
+            onSubmit={onSubmit}
+            sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                gap: { xs: 1, sm: 0 },
+                maxHeight: { xs: 'auto', sm: '120px' },
+                height: { sm: '100%' },
+            }}
+        >
+            <Paper
+                elevation={isFocused ? 3 : 1}
+                sx={{
+                    display: 'flex',
+                    flexGrow: 1,
+                    mr: { xs: 0, sm: 1 },
+                    position: 'relative',
+                    border: isFocused ? '1px solid #1976d2' : '1px solid rgba(0, 0, 0, 0.23)',
+                    borderRadius: 1,
+                    overflow: 'hidden',
                 }}
-            />
+            >
+                <div
+                    ref={inputRef}
+                    contentEditable={!disabled}
+                    onInput={handleChange}
+                    onKeyDown={handleKeyDown}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
+                    style={{
+                        fontFamily: 'Sono, monospace',
+                        padding: '8px 14px',
+                        minHeight: '18px',
+                        maxHeight: isMobile ? '150px' : '100px',
+                        width: '100%',
+                        overflowY: 'auto',
+                        outline: 'none',
+                        wordBreak: 'break-word',
+                        cursor: disabled ? 'not-allowed' : 'text',
+                        opacity: disabled ? 0.7 : 1,
+                        backgroundColor: disabled ? 'rgba(0, 0, 0, 0.05)' : 'inherit'
+                    }}
+                />
+                {(!value || value == "\x0a") && (
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: '8px',
+                            left: '14px',
+                            color: 'rgba(255, 255, 255, 0.6)',
+                            pointerEvents: 'none',
+                        }}
+                    >
+                        {isMobile ? "Message..." : "Type your message... (Ctrl+Enter to send)"}
+                    </div>
+                )}
+            </Paper>
             <Box
                 sx={{
                     display: 'flex',
-                    flexDirection: 'column',
+                    flexDirection: { xs: 'row', sm: 'column' },
                     gap: 1,
+                    height: { sm: '100%' },
                 }}
             >
                 <ButtonGroup
                     variant="contained"
-                    orientation="vertical"
+                    orientation={isMobile ? "horizontal" : "vertical"}
                     sx={{
                         height: '100%',
+                        width: { xs: '100%', sm: 'auto' },
+                        minWidth: { xs: '100%', sm: '120px' },
                     }}
                 >
                     <Button
@@ -70,10 +126,10 @@ const MessageInput: React.FC<MessageInputProps> = ({ value, onChange, onSubmit, 
                         endIcon={primaryButtonIcon}
                         sx={{
                             flexGrow: 1,
-                            height: '50%',
+                            width: isMobile ? '70%' : '100%',
                         }}
                     >
-                        {value.trim() ? "Send" : "Prompt"}
+                        {primaryButtonText}
                     </Button>
                     <Button
                         color="primary"
@@ -85,10 +141,10 @@ const MessageInput: React.FC<MessageInputProps> = ({ value, onChange, onSubmit, 
                         }}
                         sx={{
                             flexGrow: 1,
-                            height: '50%',
+                            width: isMobile ? '30%' : '100%',
                         }}
                     >
-                        Image
+                        {!isMobile && "Image"}
                     </Button>
                 </ButtonGroup>
             </Box>

@@ -145,8 +145,9 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 <Avatar
                     sx={{
                         bgcolor: getAvatarColor(),
-                        mr: message.role === 'user' ? 0 : 2,
-                        ml: message.role === 'user' ? 2 : 0,
+                        mr: message.role === 'user' ? 0 : 1,
+                        ml: message.role === 'user' ? 1 : 0,
+                        display: { xs: 'none', sm: 'flex' } // Hide avatar on small screens
                     }}
                 >
                     {getAvatarContent()}
@@ -157,7 +158,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                     sx={{
                         px: 1.5,
                         pt: 0.5,
-                        maxWidth: '70%',
+                        maxWidth: { xs: '85%', sm: '75%', md: '70%' }, // More space on mobile
                         bgcolor: getPaperBackgroundColor(),
                         borderRadius: 2,
                         borderLeft: message.starred ? '3px solid gold' : 'none'
@@ -168,10 +169,19 @@ const MessageItem: React.FC<MessageItemProps> = ({
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
                             {message.role === 'system' ? (
                                 <Typography variant="caption" fontWeight="medium" color="info.light">
-                                    SYSTEM INSTRUCTION
+                                    SYSTEM
                                 </Typography>
                             ) : (
-                                <Box />
+                                <Typography
+                                    variant="caption"
+                                    fontWeight="medium"
+                                    sx={{
+                                        display: { xs: 'inline', sm: 'none' },
+                                        color: message.role === 'user' ? 'primary.light' : 'secondary.light'
+                                    }}
+                                >
+                                    {message.role === 'user' ? 'YOU' : 'AI'}
+                                </Typography>
                             )}
                             <Box sx={{ display: 'flex' }}>
                                 {message.role !== 'system' && (
@@ -192,7 +202,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
                         <Box sx={{
                             fontFamily: 'Sono',
                             '& > *:first-child': { pt: 0, mt: 0 },
-                            '& > * > *:first-child': { pt: 0, mt: 0 }
+                            '& > * > *:first-child': { pt: 0, mt: 0 },
+                            fontSize: { xs: '0.9rem', sm: '1rem' } // Slightly smaller font on mobile
                         }}>
                             <Markdown options={{
                                 forceBlock: true,

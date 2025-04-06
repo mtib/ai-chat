@@ -5,7 +5,11 @@ import { useConversationContext } from '../../contexts/ConversationContext';
 import NewConversationDialog from './NewConversationDialog';
 import ConversationItem from './ConversationItem';
 
-const ConversationList: React.FC = () => {
+interface ConversationListProps {
+    onItemClick?: () => void; // Optional callback for when an item is clicked
+}
+
+const ConversationList: React.FC<ConversationListProps> = ({ onItemClick }) => {
     const {
         activeConversation,
         filteredConversations,
@@ -20,6 +24,14 @@ const ConversationList: React.FC = () => {
     const handleNewConversation = (conversation: any) => {
         createConversation(conversation);
         setDialogOpen(false);
+    };
+
+    // Handler that combines setting active conversation and drawer close
+    const handleConversationClick = (conversation: any) => {
+        setActiveConversation(conversation);
+        if (onItemClick) {
+            onItemClick();
+        }
     };
 
     return (
@@ -42,7 +54,7 @@ const ConversationList: React.FC = () => {
                             key={conversation.id}
                             conversation={conversation}
                             isActive={activeConversation?.id === conversation.id}
-                            onClick={() => setActiveConversation(conversation)}
+                            onClick={() => handleConversationClick(conversation)}
                             onRename={async (id, newTitle) => {
                                 await updateConversationTitle(id, newTitle);
                             }}

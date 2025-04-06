@@ -8,7 +8,11 @@ import { Conversation } from '../../types';
 import { saveConversationToFile } from '../../utils/fileUtils';
 import ApiKeyModal from '../ApiKeyModal';
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+    onItemClick?: () => void; // Optional callback for when an item is clicked
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
     const {
         activeConversation,
         filteredConversations,
@@ -97,7 +101,7 @@ const Sidebar: React.FC = () => {
 
             <Divider />
             <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
-                <ConversationList />
+                <ConversationList onItemClick={onItemClick} />
             </Box>
             <ApiKeyModal />
         </>
