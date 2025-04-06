@@ -15,16 +15,25 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     const isMobile = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'));
     const [mobileOpen, setMobileOpen] = useState(false);
     const [windowHeight, setWindowHeight] = useState(window.innerHeight);
+    const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
     // Add resize listener to handle mobile keyboard and orientation changes
     useEffect(() => {
         const handleResize = () => {
-            setWindowHeight(window.innerHeight);
+            const newWindowHeight = window.innerHeight;
+            setWindowHeight(newWindowHeight);
+
+            // Detect if keyboard is likely open (if height decreased significantly on mobile)
+            if (isMobile) {
+                // A height reduction of more than 30% likely indicates keyboard is open
+                const heightReduction = window.outerHeight - newWindowHeight;
+                setIsKeyboardOpen(heightReduction > window.outerHeight * 0.3);
+            }
         };
 
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
-    }, []);
+    }, [isMobile]);
 
     const handleDrawerToggle = () => {
         setMobileOpen(!mobileOpen);
@@ -35,6 +44,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMobileOpen(false);
         }
     };
+
+    // Calculate bottom padding to accommodate keyboard on mobile
+    const bottomPadding = isKeyboardOpen && isMobile ? '220px' : '0';
 
     return (
         <Box sx={{
@@ -111,6 +123,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                     left: 0,
                     right: 0,
                     bottom: 0,
+                    paddingBottom: bottomPadding, // Add padding at the bottom when keyboard is open
                 }}>
                     {children}
                 </Box>
