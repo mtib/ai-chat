@@ -70,10 +70,8 @@ const MessageInput: React.FC<MessageInputProps> = ({
                 display: 'flex',
                 flexDirection: { xs: 'column', sm: 'row' },
                 gap: { xs: 1, sm: 0 },
-                maxHeight: { xs: 'auto', sm: '120px' },
-                height: { sm: '100%' },
-                // When focused on mobile, expand to use all available space
-                flexGrow: isMobile && isFocused ? 1 : 'initial',
+                maxHeight: '120px',
+                flexGrow: 1,
             }}
         >
             <Paper
@@ -85,9 +83,8 @@ const MessageInput: React.FC<MessageInputProps> = ({
                     position: 'relative',
                     border: isFocused ? '1px solid #1976d2' : '1px solid rgba(0, 0, 0, 0.23)',
                     borderRadius: 1,
+                    height: '100%',
                     overflow: 'hidden',
-                    // When focused on mobile, expand to use much more space
-                    height: isMobile && isFocused ? 'calc(100vh - 180px)' : 'auto',
                 }}
             >
                 <TextField
@@ -122,52 +119,43 @@ const MessageInput: React.FC<MessageInputProps> = ({
                     }}
                 />
             </Paper>
-            <Box
+            <ButtonGroup
+                variant="contained"
+                orientation={isMobile ? "horizontal" : "vertical"}
                 sx={{
-                    display: 'flex',
-                    flexDirection: { xs: 'row', sm: 'column' },
-                    gap: 1,
-                    height: { sm: '100%' },
+                    height: '100%',
+                    width: { xs: '100%', sm: 'auto' },
+                    minWidth: { xs: '100%', sm: '120px' },
                 }}
             >
-                <ButtonGroup
-                    variant="contained"
-                    orientation={isMobile ? "horizontal" : "vertical"}
+                <Button
+                    color="primary"
+                    type="submit"
+                    disabled={disabled}
+                    endIcon={primaryButtonIcon}
                     sx={{
-                        height: '100%',
-                        width: { xs: '100%', sm: 'auto' },
-                        minWidth: { xs: '100%', sm: '120px' },
+                        flexGrow: 1,
+                        width: isMobile ? '70%' : '100%',
                     }}
                 >
-                    <Button
-                        color="primary"
-                        type="submit"
-                        disabled={disabled}
-                        endIcon={primaryButtonIcon}
-                        sx={{
-                            flexGrow: 1,
-                            width: isMobile ? '70%' : '100%',
-                        }}
-                    >
-                        {primaryButtonText}
-                    </Button>
-                    <Button
-                        color="primary"
-                        disabled={disabled || !value.trim()}
-                        endIcon={<ImageIcon />}
-                        onClick={(e) => {
-                            e.preventDefault();
-                            onImage();
-                        }}
-                        sx={{
-                            flexGrow: 1,
-                            width: isMobile ? '30%' : '100%',
-                        }}
-                    >
-                        {!isMobile && "Image"}
-                    </Button>
-                </ButtonGroup>
-            </Box>
+                    {primaryButtonText}
+                </Button>
+                <Button
+                    color="primary"
+                    disabled={disabled || !value.trim()}
+                    endIcon={<ImageIcon />}
+                    onClick={(e) => {
+                        e.preventDefault();
+                        onImage();
+                    }}
+                    sx={{
+                        flexGrow: 1,
+                        width: isMobile ? '30%' : '100%',
+                    }}
+                >
+                    {!isMobile && "Image"}
+                </Button>
+            </ButtonGroup>
         </Box>
     );
 };
