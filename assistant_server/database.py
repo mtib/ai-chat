@@ -41,7 +41,7 @@ class Database:
         
         # Initialize default config values if not present
         default_config = {
-            "prompt": "I am an AI assistant here to help you.",
+            "prompt": os.getenv("INITIAL_PROMPT", "You are a helpful assistant."),
             "description": "This assistant provides helpful information based on stored knowledge.",
             "short_description": "Helpful knowledge assistant",
             "embedding": "text-embedding-3-small"
@@ -108,9 +108,11 @@ class Database:
         similarities = []
         for row in rows:
             if query_np.shape[1] != len(json.loads(row["vector"])):
+                print(f"Skipping row with incompatible vector size: {len(row['vector'])}")
                 continue
             db_embedding = np.array(json.loads(row["vector"])).reshape(1, -1)
             similarity = cosine_similarity(query_np, db_embedding)[0][0]
+            print(similarity)
             similarities.append((similarity, row["payload"]))
         
         # Sort by similarity (descending) and filter by threshold
