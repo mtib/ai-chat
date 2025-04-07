@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "assistant_server_api",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

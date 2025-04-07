@@ -1,0 +1,23 @@
+meta {
+  name: search
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseurl}}/search
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "embedding": [
+      1,
+      0.4555,
+      0.23,
+      0.7,
+      0
+    ]
+  }
+}

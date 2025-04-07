@@ -1,0 +1,24 @@
+meta {
+  name: data
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseurl}}/data
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "embedding": [
+      1,
+      0.5,
+      0.25,
+      0.7,
+      0
+    ],
+    "payload": "this is some example text"
+  }
+}
