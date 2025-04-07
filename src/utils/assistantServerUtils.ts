@@ -89,6 +89,37 @@ export const generateEmbedding = async (
 };
 
 /**
+ * Stores content in the assistant server memory
+ */
+export const storeAssistantContent = async (
+    serverConfig: ServerAssistantConfig,
+    content: string,
+    embedding: number[]
+): Promise<boolean> => {
+    try {
+        const response = await axios.put(
+            `${serverConfig.baseUrl}/data`,
+            {
+                embedding: embedding,
+                payload: content
+            },
+            {
+                headers: {
+                    'Authorization': `Bearer ${serverConfig.token}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        return response.status === 201;
+    } catch (error) {
+        console.error('Error storing content in assistant server:', error);
+        const axiosError = error as any;
+        throw new Error(axiosError.response?.data?.error?.message || 'Failed to store content in assistant server');
+    }
+};
+
+/**
  * Test connection to the assistant server
  */
 export const testAssistantConnection = async (

@@ -4,6 +4,9 @@ import { Conversation } from '../../types';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import { useChat } from '../../hooks/useChat';
+import { useSnackbar } from 'notistack';
+import { storeInAssistantMemory } from '../../utils/apiUtils';
+import { getApiKey } from '../../utils/apiUtils';
 
 interface ChatPanelProps {
     conversation: Conversation;
@@ -13,6 +16,7 @@ interface ChatPanelProps {
 const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdate }) => {
     const [isInputFocused, setIsInputFocused] = useState(false);
     const isMobile = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'));
+    const { enqueueSnackbar } = useSnackbar();
 
     const {
         input,
@@ -33,6 +37,44 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdat
     const handleGenerateImage = () => {
         if (input.trim()) {
             generateImage(input);
+        }
+    };
+
+    // Handler for the remember button
+    const handleRememberContent = async () => {
+        if (input.trim() && localConversation.serverAssistant) {
+            const apiKey = getApiKey();
+
+            // Show loading toast
+            enqueueSnackbar("Remembering content...", {
+                variant: "info",
+                autoHideDuration: 1000
+            });
+
+            try {
+                // Store the content in the assistant's memory
+                const success = await storeInAssistantMemory(
+                    localConversation.serverAssistant,
+                    input.trim(),
+                    apiKey
+                );
+
+                if (success) {
+                    enqueueSnackbar("Content remembered successfully!", {
+                        variant: "success"
+                    });
+
+                    // Clear the input on successful storage
+                    setInput("");
+                } else {
+                    throw new Error("Failed to store content");
+                }
+            } catch (error) {
+                console.error(error);
+                enqueueSnackbar("Failed to remember content", {
+                    variant: "error"
+                });
+            }
         }
     };
 
@@ -91,9 +133,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ conversation, onConversationUpdat
                 onChange={setInput}
                 onSubmit={handleSendWithBlur}
                 onImage={handleGenerateImage}
+                onRemember={localConversation.serverAssistant ? handleRememberContent : undefined}
                 onFocus={handleInputFocus}
                 onBlur={handleInputBlur}
                 disabled={loading}
+                conversation={localConversation}
             />
         </Box>
     );

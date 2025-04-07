@@ -3,7 +3,7 @@ import { saveConversationToFile } from './fileUtils';
 import { Conversation, Message, ServerAssistantConfig } from '../types';
 import { ENV_API_KEY, OPENAI_CONFIG, SYSTEM_PROMPT } from '../config/apiConfig';
 import { findRelevantMessages } from './contextUtils';
-import { generateEmbedding, getAssistantContext } from './assistantServerUtils';
+import { generateEmbedding, getAssistantContext, storeAssistantContent } from './assistantServerUtils';
 
 // This should be stored securely and not in client-side code in production
 // Consider using environment variables or a backend service
@@ -239,22 +239,8 @@ export const storeInAssistantMemory = async (
             serverAssistant.embeddingModel || 'text-embedding-3-small'
         );
 
-        // Store the embedding and text in the assistant's memory
-        await axios.put(
-            `${serverAssistant.baseUrl}/data`,
-            {
-                embedding: embedding,
-                payload: text
-            },
-            {
-                headers: {
-                    'Authorization': `Bearer ${serverAssistant.token}`,
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
-
-        return true;
+        // Store the embedding and text in the assistant's memory using the dedicated function
+        return await storeAssistantContent(serverAssistant, text, embedding);
     } catch (error) {
         console.error('Error storing in assistant memory:', error);
         return false;

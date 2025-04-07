@@ -124,7 +124,7 @@ export const calculateLiveRelevanceScores = (conversation: Conversation, current
  * @returns Array of messages to include in context
  */
 export const findRelevantMessages = (conversation: Conversation, newQuery: string): Message[] => {
-    const allMessages = conversation.messages;
+    const allMessages = conversation.messages.slice();
 
     // Always include the system message if present
     const systemMessages = allMessages.filter(msg => msg.role === 'system');
