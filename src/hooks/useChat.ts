@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Conversation, Message } from '../types';
 import { sendMessageToOpenAI, saveConversation, generateImageWithDALLE } from '../utils/apiUtils';
+import { fetchAssistantConfig } from '../utils/assistantServerUtils';
 
 interface UseChatProps {
     conversation: Conversation;
@@ -20,7 +21,58 @@ export const useChat = ({ conversation, onConversationUpdate }: UseChatProps) =>
     // Update local state when the conversation prop changes
     useEffect(() => {
         setLocalConversation(conversation);
-    }, [conversation]);
+
+        // If this is a new conversation with a server assistant but no system message,
+        // load the system prompt from the server
+        const initializeServerAssistant = async () => {
+            if (
+                conversation.serverAssistant &&
+                !conversation.messages.some(msg => msg.role === 'system')
+            ) {
+                try {
+                    setLoading(true);
+
+                    // Fetch system prompt from server assistant
+                    const config = await fetchAssistantConfig(
+                        conversation.serverAssistant.baseUrl,
+                        conversation.serverAssistant.token
+                    );
+
+                    // Create system message with the server's prompt
+                    const systemMessage: Message = {
+                        role: 'system',
+                        content: config.prompt
+                    };
+
+                    // Add system message to conversation
+                    const updatedConv = {
+                        ...conversation,
+                        messages: [systemMessage, ...conversation.messages],
+                        serverAssistant: {
+                            ...conversation.serverAssistant,
+                            description: config.description,
+                            shortDescription: config.short_description,
+                            embeddingModel: config.embedding
+                        }
+                    };
+
+                    // Save the updated conversation
+                    await saveConversation(updatedConv);
+                    setLocalConversation(updatedConv);
+
+                    if (onConversationUpdate) {
+                        onConversationUpdate(updatedConv);
+                    }
+                } catch (error) {
+                    console.error('Error initializing server assistant:', error);
+                } finally {
+                    setLoading(false);
+                }
+            }
+        };
+
+        initializeServerAssistant();
+    }, [conversation, onConversationUpdate]);
 
     // Update local state when the conversation prop changes
     const updateConversation = useCallback((updatedConversation: Conversation) => {

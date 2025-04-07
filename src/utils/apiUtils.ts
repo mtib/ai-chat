@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { saveConversationToFile } from './fileUtils';
-import { Conversation, Message } from '../types';
+import { Conversation, Message, ServerAssistantConfig } from '../types';
 import { ENV_API_KEY, OPENAI_CONFIG, SYSTEM_PROMPT } from '../config/apiConfig';
 import { findRelevantMessages } from './contextUtils';
+import { generateEmbedding, getAssistantContext } from './assistantServerUtils';
 
 // This should be stored securely and not in client-side code in production
 // Consider using environment variables or a backend service
@@ -102,6 +103,7 @@ export const generateImageWithDALLE = async (prompt: string): Promise<ImageRespo
 /**
  * Sends a message to OpenAI API and returns the response
  * Uses context selection to manage token usage
+ * Can incorporate assistant server context if provided
  */
 export const sendMessageToOpenAI = async (conversation: Conversation): Promise<string> => {
     const apiKey = getApiKey();
@@ -131,6 +133,47 @@ export const sendMessageToOpenAI = async (conversation: Conversation): Promise<s
                     { role: 'system', content: SYSTEM_PROMPT },
                     ...messagesToSend
                 ];
+            }
+
+            // If this conversation has a server assistant, get context from the server
+            if (conversation.serverAssistant) {
+                try {
+                    // Generate embedding for the user message
+                    const embedding = await generateEmbedding(
+                        lastMessage.content,
+                        apiKey,
+                        conversation.serverAssistant.embeddingModel || 'text-embedding-3-small'
+                    );
+
+                    // Get relevant context from the assistant server
+                    const assistantContext = await getAssistantContext(conversation.serverAssistant, embedding);
+
+                    // If we got context back, add it as a new temporary system message
+                    if (assistantContext && assistantContext.length > 0) {
+                        // Create a context message that will only be sent to the API
+                        const contextStr = assistantContext.join('\n\n');
+                        const contextMessage: Message = {
+                            role: 'system',
+                            content: `Relevant context for this query:\n${contextStr}\n\nUse this context to inform your response to the user's question.`
+                        };
+
+                        // Insert the context message just before the user's message
+                        const userMsgIndex = messagesToSend.findIndex(msg =>
+                            msg.role === 'user' && msg.content === lastMessage.content
+                        );
+
+                        if (userMsgIndex !== -1) {
+                            // Insert before the user message
+                            messagesToSend.splice(userMsgIndex, 0, contextMessage);
+                        } else {
+                            // If we can't find the exact user message, add it at the end
+                            messagesToSend.push(contextMessage);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error incorporating assistant context:', error);
+                    // Continue without the assistant context if there's an error
+                }
             }
         } else {
             // If the last message isn't from a user, use the whole conversation or add default system prompt
@@ -176,6 +219,44 @@ export const saveConversation = async (conversation: Conversation): Promise<bool
         return true;
     } catch (error) {
         console.error('Error saving conversation:', error);
+        return false;
+    }
+};
+
+/**
+ * Stores information in a server assistant's memory
+ */
+export const storeInAssistantMemory = async (
+    serverAssistant: ServerAssistantConfig,
+    text: string,
+    apiKey: string
+): Promise<boolean> => {
+    try {
+        // Generate embedding for the text
+        const embedding = await generateEmbedding(
+            text,
+            apiKey,
+            serverAssistant.embeddingModel || 'text-embedding-3-small'
+        );
+
+        // Store the embedding and text in the assistant's memory
+        await axios.put(
+            `${serverAssistant.baseUrl}/data`,
+            {
+                embedding: embedding,
+                payload: text
+            },
+            {
+                headers: {
+                    'Authorization': `Bearer ${serverAssistant.token}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        return true;
+    } catch (error) {
+        console.error('Error storing in assistant memory:', error);
         return false;
     }
 };

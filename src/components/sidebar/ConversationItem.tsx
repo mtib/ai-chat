@@ -16,8 +16,10 @@ import {
     DialogActions,
     Button,
     Typography,
+    Chip,
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import StorageIcon from '@mui/icons-material/Storage';
 import { Conversation } from '../../types';
 
 // Function to format the time (relative or absolute)
@@ -64,6 +66,9 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
 
     // Get the last modified time to display
     const lastModified = formatTime(conversation.lastModified || conversation.updatedAt);
+
+    // Check if this conversation uses a server assistant
+    const hasServerAssistant = !!conversation.serverAssistant;
 
     const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
         event.stopPropagation(); // Prevent triggering the list item click
@@ -202,16 +207,44 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
                         justifyContent: 'space-between',
                         alignItems: 'center'
                     }}>
-                        <ListItemText
-                            sx={{
-                                '& .MuiListItemText-secondary': {
-                                    fontSize: '0.7rem',
-                                    color: 'primary.main',
-                                }
-                            }}
-                            primary={conversation.title}
-                            secondary={lastModified}
-                        />
+                        <Box sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: 'hidden',
+                            flexGrow: 1
+                        }}>
+                            <Box sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 0.5,
+                                width: '100%',
+                                overflow: 'hidden'
+                            }}>
+                                {hasServerAssistant && (
+                                    <Tooltip title={`Server Assistant: ${conversation.serverAssistant?.baseUrl}`}>
+                                        <StorageIcon fontSize="small" color="secondary" sx={{ opacity: 0.7 }} />
+                                    </Tooltip>
+                                )}
+                                <Typography
+                                    variant="body1"
+                                    sx={{
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                        width: '100%'
+                                    }}
+                                >
+                                    {conversation.title}
+                                </Typography>
+                            </Box>
+                            <Typography
+                                variant="caption"
+                                color="primary.main"
+                                sx={{ fontSize: '0.7rem' }}
+                            >
+                                {lastModified}
+                            </Typography>
+                        </Box>
                         <IconButton
                             size="small"
                             edge="end"

@@ -3,15 +3,19 @@ import { Box, Button, ButtonGroup, Tooltip, useMediaQuery, Theme, Paper, TextFie
 import SendIcon from '@mui/icons-material/Send';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import ImageIcon from '@mui/icons-material/Image';
+import MemoryIcon from '@mui/icons-material/Memory';
+import { Conversation } from '../../types';
 
 interface MessageInputProps {
     value: string;
     onChange: (value: string) => void;
     onSubmit: (e: React.FormEvent) => void;
     onImage: () => void;
+    onRemember?: () => void;
     onFocus?: () => void;
     onBlur?: () => void;
     disabled: boolean;
+    conversation?: Conversation;
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({
@@ -19,13 +23,18 @@ const MessageInput: React.FC<MessageInputProps> = ({
     onChange,
     onSubmit,
     onImage,
+    onRemember,
     onFocus,
     onBlur,
-    disabled
+    disabled,
+    conversation
 }) => {
     const isMobile = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'));
     const [isFocused, setIsFocused] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
+
+    // Check if this conversation uses a server assistant
+    const hasServerAssistant = conversation?.serverAssistant !== undefined;
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         onChange(e.target.value);
@@ -135,11 +144,13 @@ const MessageInput: React.FC<MessageInputProps> = ({
                     endIcon={primaryButtonIcon}
                     sx={{
                         flexGrow: 1,
-                        width: isMobile ? '70%' : '100%',
+                        width: isMobile ? (hasServerAssistant ? '40%' : '70%') : '100%',
                     }}
                 >
                     {primaryButtonText}
                 </Button>
+
+                {/* DALL-E Image Generation Button */}
                 <Button
                     color="primary"
                     disabled={disabled || !value.trim()}
@@ -150,11 +161,30 @@ const MessageInput: React.FC<MessageInputProps> = ({
                     }}
                     sx={{
                         flexGrow: 1,
-                        width: isMobile ? '30%' : '100%',
+                        width: isMobile ? (hasServerAssistant ? '30%' : '30%') : '100%',
                     }}
                 >
                     {!isMobile && "Image"}
                 </Button>
+
+                {/* Remember Button - Only shown for server assistant conversations */}
+                {hasServerAssistant && onRemember && (
+                    <Button
+                        color="secondary"
+                        disabled={disabled || !value.trim()}
+                        endIcon={<MemoryIcon />}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            onRemember();
+                        }}
+                        sx={{
+                            flexGrow: 1,
+                            width: isMobile ? '30%' : '100%',
+                        }}
+                    >
+                        {!isMobile && "Remember"}
+                    </Button>
+                )}
             </ButtonGroup>
         </Box>
     );

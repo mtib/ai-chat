@@ -5,11 +5,13 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from dotenv import load_dotenv
 from database import Database
+from flask_cors import CORS
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
+CORS(app, origins="*", methods=["GET", "POST", "PUT"], allow_headers=["Content-Type", "Authorization"])
 db = Database()
 
 # Get the API token from environment
@@ -31,9 +33,12 @@ def authorize(request):
 @app.before_request
 def check_auth():
     """Middleware to check authorization for all routes"""
-    if request.endpoint not in ["health_check"]:  # Exclude health check endpoint
-        if not authorize(request):
-            return jsonify({"error": "Unauthorized"}), 401
+    # Skip auth for health check endpoint and OPTIONS requests (CORS preflight)
+    if request.endpoint in ["health_check"] or request.method == "OPTIONS":
+        return
+    
+    if not authorize(request):
+        return jsonify({"error": "Unauthorized"}), 401
 
 @app.route('/health', methods=['GET'])
 def health_check():
