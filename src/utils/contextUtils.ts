@@ -155,9 +155,8 @@ export const findRelevantMessages = (conversation: Conversation, newQuery: strin
     scoredMessages.sort((a, b) => b.score - a.score);
 
     // Select top scoring messages up to limit
-    const remainingSlots = MAX_CONTEXT_MESSAGES - systemMessages.length - starredMessages.length;
     const selectedRegularMessages = scoredMessages
-        .slice(0, Math.max(0, remainingSlots))
+        .slice(0, MAX_CONTEXT_MESSAGES)
         .map(item => item.message);
 
     // Combine all selected messages

@@ -7,12 +7,12 @@ export const themeOptions: ThemeOptions = {
     palette: {
         mode: 'dark',
         primary: {
-            main: '#7b1fa2', // Deeper purple
+            main: '#8f5aa5', // Deeper purple
             light: '#ae52d4',
-            dark: '#4a0072',
+            dark: '#4f3072',
         },
         secondary: {
-            main: '#6a3de8', // Adjusted purple accent
+            main: '#6f3de8', // Adjusted purple accent
             light: '#a271ff',
             dark: '#3d1db5',
         },

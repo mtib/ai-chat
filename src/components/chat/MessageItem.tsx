@@ -96,13 +96,13 @@ const MessageItem: React.FC<MessageItemProps> = ({
     const getAvatarContent = () => {
         switch (message.role) {
             case 'user':
-                return <PersonIcon />;
+                return <PersonIcon fontSize="small" />;
             case 'assistant':
-                return <SmartToyIcon />;
+                return <SmartToyIcon fontSize="small" />;
             case 'system':
-                return <SettingsIcon />;
+                return <SettingsIcon fontSize="small" />;
             default:
-                return <PersonIcon />;
+                return <PersonIcon fontSize="small" />;
         }
     };
 
@@ -119,54 +119,51 @@ const MessageItem: React.FC<MessageItemProps> = ({
         }
     };
 
-    const getPaperBackgroundColor = () => {
-        switch (message.role) {
-            case 'user':
-                return 'primary.dark';
-            case 'assistant':
-                return '#1E0C30'; // Darker background for assistant messages
-            case 'system':
-                return '#1E1236'; // Darker background for system messages
-            default:
-                return 'background.paper';
-        }
-    };
-
     return (
         <>
             <Box
                 sx={{
                     display: 'flex',
-                    mb: 2,
-                    flexDirection: message.role === 'user' ? 'row-reverse' : 'row',
-                    alignItems: 'flex-start'
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                    alignItems: 'flex-start',
+                    transition: 'background-color 0.1s',
+                    '&:hover': {
+                        backgroundColor: '#ff00ff0a',
+                    },
                 }}
             >
-                <Avatar
+                <Box
                     sx={{
-                        bgcolor: getAvatarColor(),
-                        mr: message.role === 'user' ? 0 : 1,
-                        ml: message.role === 'user' ? 1 : 0,
-                        display: { xs: 'none', sm: 'flex' } // Hide avatar on small screens
+                        width: { xs: '100%', md: 'min(80%, 50rem)' }, // More space on mobile
+                        px: { xs: 1, sm: 2, md: 0 },
+                        pt: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
                     }}
                 >
-                    {getAvatarContent()}
-                </Avatar>
-
-                <Paper
-                    elevation={1}
-                    sx={{
-                        px: 1.5,
-                        pt: 0.5,
-                        maxWidth: { xs: '85%', sm: '75%', md: '70%' }, // More space on mobile
-                        bgcolor: getPaperBackgroundColor(),
-                        borderRadius: 2,
-                        borderLeft: message.starred ? '3px solid gold' : 'none'
-                    }}
-                >
-                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                        {/* Action buttons and system instruction in same row */}
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                    <Box sx={{
+                        display: 'flex',
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        py: 0.5
+                    }}>
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1,
+                            }}
+                        >
+                            <Avatar
+                                sx={{
+                                    width: '24px',
+                                    height: '24px',
+                                    bgcolor: getAvatarColor(),
+                                }}
+                            >
+                                {getAvatarContent()}
+                            </Avatar>
                             {message.role === 'system' ? (
                                 <Typography variant="caption" fontWeight="medium" color="info.light">
                                     SYSTEM
@@ -176,107 +173,108 @@ const MessageItem: React.FC<MessageItemProps> = ({
                                     variant="caption"
                                     fontWeight="medium"
                                     sx={{
-                                        display: { xs: 'inline', sm: 'none' },
                                         color: message.role === 'user' ? 'primary.light' : 'secondary.light'
                                     }}
                                 >
                                     {message.role === 'user' ? 'YOU' : 'AI'}
                                 </Typography>
                             )}
-                            <Box sx={{ display: 'flex' }}>
-                                {message.role !== 'system' && (
-                                    <IconButton size="small" onClick={handleStarClick} sx={{ opacity: 0.7, '&:hover': { opacity: 1 } }}>
-                                        {message.starred ?
-                                            <StarIcon fontSize="small" sx={{ color: 'gold' }} /> :
-                                            <StarBorderIcon fontSize="small" />
-                                        }
-                                    </IconButton>
-                                )}
-                                <IconButton size="small" onClick={handleOpenMenu} sx={{ opacity: 0.5, '&:hover': { opacity: 1 } }}>
-                                    <MoreVertIcon fontSize="small" />
-                                </IconButton>
-                            </Box>
                         </Box>
-
-                        {/* Message content */}
-                        <Box sx={{
-                            fontFamily: 'Sono',
-                            '& > *:first-child': { pt: 0, mt: 0 },
-                            '& > * > *:first-child': { pt: 0, mt: 0 },
-                            fontSize: { xs: '0.9rem', sm: '1rem' } // Slightly smaller font on mobile
-                        }}>
-                            <Markdown options={{
-                                forceBlock: true,
-                                overrides: {
-                                    pre: {
-                                        component: ({ children, ...props }) => {
-                                            return (
-                                                <Box
-                                                    component="pre"
-                                                    sx={{
-                                                        backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                                                        p: 1,
-                                                        borderRadius: 1,
-                                                        overflowX: 'auto',
-                                                        mb: 1,
-                                                        mt: 1,
-                                                        '& code': {
-                                                            fontFamily: 'Sono',
-                                                            fontVariationSettings: "'MONO' 1",
-                                                            backgroundColor: 'transparent',
-                                                            p: 0
-                                                        },
-                                                    }}
-                                                    {...props}
-                                                >
-                                                    {children}
-                                                </Box>
-                                            );
-                                        }
-                                    },
-                                    code: {
-                                        component: ({ children, className }) => {
-                                            const isInline = !className?.includes('language-');
-                                            return (
-                                                <Box
-                                                    component="code"
-                                                    sx={{
-                                                        fontFamily: 'Sono',
-                                                        fontVariationSettings: "'MONO' 1",
-                                                        backgroundColor: isInline ? 'rgba(0, 0, 0, 0.1)' : 'transparent',
-                                                        px: isInline ? 0.5 : 0,
-                                                        py: isInline ? 0.2 : 0,
-                                                        borderRadius: isInline ? 1 : 0,
-                                                        display: 'inline',
-                                                        fontSize: '0.875rem',
-                                                    }}
-                                                >
-                                                    {children}
-                                                </Box>
-                                            );
-                                        }
-                                    },
-                                    img: {
-                                        component: ({ src, alt }) => (
-                                            <img
-                                                src={src}
-                                                alt={alt}
-                                                style={{
-                                                    maxWidth: '100%',
-                                                    borderRadius: 8,
-                                                    marginTop: 8,
-                                                    marginBottom: 8,
-                                                }}
-                                            />
-                                        )
-                                    },
-                                }
-                            }}>
-                                {message.content}
-                            </Markdown>
+                        {/* Action buttons and system instruction in same row */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            {message.role !== 'system' && (
+                                <IconButton size="small" onClick={handleStarClick} sx={{ opacity: 0.7, '&:hover': { opacity: 1 } }}>
+                                    {message.starred ?
+                                        <StarIcon fontSize="small" sx={{ color: 'gold' }} /> :
+                                        <StarBorderIcon fontSize="small" />
+                                    }
+                                </IconButton>
+                            )}
+                            <IconButton size="small" onClick={handleOpenMenu} sx={{ opacity: 0.5, '&:hover': { opacity: 1 } }}>
+                                <MoreVertIcon fontSize="small" />
+                            </IconButton>
                         </Box>
                     </Box>
-                </Paper>
+
+                    {/* Message content */}
+                    <Box sx={{
+                        pt: 0.5,
+                        fontFamily: 'Sono',
+                        '& > *:first-child': { pt: 0, mt: 0 },
+                        '& > * > *:first-child': { pt: 0, mt: 0 },
+                        fontSize: { xs: '0.9rem', sm: '1rem' } // Slightly smaller font on mobile
+                    }}>
+                        <Markdown options={{
+                            forceBlock: true,
+                            overrides: {
+                                pre: {
+                                    component: ({ children, ...props }) => {
+                                        return (
+                                            <Box
+                                                component="pre"
+                                                sx={{
+                                                    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                                                    p: 1,
+                                                    borderRadius: 1,
+                                                    overflowX: 'auto',
+                                                    mb: 1,
+                                                    mt: 1,
+                                                    '& code': {
+                                                        fontFamily: 'Sono',
+                                                        fontVariationSettings: "'MONO' 1",
+                                                        backgroundColor: 'transparent',
+                                                        p: 0
+                                                    },
+                                                }}
+                                                {...props}
+                                            >
+                                                {children}
+                                            </Box>
+                                        );
+                                    }
+                                },
+                                code: {
+                                    component: ({ children, className }) => {
+                                        const isInline = !className?.includes('language-');
+                                        return (
+                                            <Box
+                                                component="code"
+                                                sx={{
+                                                    fontFamily: 'Sono',
+                                                    fontVariationSettings: "'MONO' 1",
+                                                    backgroundColor: isInline ? 'rgba(0, 0, 0, 0.1)' : 'transparent',
+                                                    px: isInline ? 0.5 : 0,
+                                                    py: isInline ? 0.2 : 0,
+                                                    borderRadius: isInline ? 1 : 0,
+                                                    display: 'inline',
+                                                    fontSize: '0.875rem',
+                                                }}
+                                            >
+                                                {children}
+                                            </Box>
+                                        );
+                                    }
+                                },
+                                img: {
+                                    component: ({ src, alt }) => (
+                                        <img
+                                            src={src}
+                                            alt={alt}
+                                            style={{
+                                                maxWidth: 'min(100%, 1024px)',
+                                                marginLeft: 'auto',
+                                                marginRight: 'auto',
+                                                borderRadius: 8,
+                                            }}
+                                        />
+                                    )
+                                },
+                            }
+                        }}>
+                            {message.content}
+                        </Markdown>
+                    </Box>
+                </Box>
             </Box>
 
             {/* Message actions menu */}

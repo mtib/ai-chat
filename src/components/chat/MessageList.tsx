@@ -85,7 +85,6 @@ const MessageList: React.FC<MessageListProps> = ({
                 flexDirection: 'column',
                 flexGrow: 1,
                 overflow: 'auto',
-                p: 2
             }}
         >
             {messages.map((message, index) => (
@@ -104,7 +103,7 @@ const MessageList: React.FC<MessageListProps> = ({
             ))}
 
             {loading && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
                     <CircularProgress size={24} />
                 </Box>
             )}

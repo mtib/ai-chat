@@ -123,6 +123,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
                                 cursor: disabled ? 'not-allowed' : 'text',
                                 opacity: disabled ? 0.7 : 1,
                                 backgroundColor: disabled ? 'rgba(0, 0, 0, 0.05)' : 'inherit'
+
                             }
                         }
                     }}
