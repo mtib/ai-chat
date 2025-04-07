@@ -9,9 +9,10 @@ import {
     Typography,
     Box,
     Alert,
-    useTheme
+    useTheme,
+    Divider
 } from '@mui/material';
-import { getApiKey, setApiKey } from '../utils/apiUtils';
+import { getApiKey, setApiKey, getOrgId, setOrgId } from '../utils/apiUtils';
 import { ENV_API_KEY } from '../config/apiConfig';
 
 /**
@@ -20,6 +21,7 @@ import { ENV_API_KEY } from '../config/apiConfig';
 const ApiKeyModal: React.FC = () => {
     const [open, setOpen] = useState(false);
     const [apiKey, setApiKeyState] = useState('');
+    const [orgId, setOrgIdState] = useState('');
     const [error, setError] = useState('');
     const [hasEnvKey, setHasEnvKey] = useState(false);
     const theme = useTheme();
@@ -28,8 +30,10 @@ const ApiKeyModal: React.FC = () => {
         // Check if API key is already set
         const key = getApiKey();
         const envKey = ENV_API_KEY;
+        const organizationId = getOrgId();
 
         setHasEnvKey(!!envKey);
+        setOrgIdState(organizationId || '');
 
         if (!key && !envKey) {
             setOpen(true);
@@ -45,9 +49,10 @@ const ApiKeyModal: React.FC = () => {
         }
 
         setApiKey(apiKey);
+        setOrgId(orgId);
         setError('');
         setOpen(false);
-    }, [apiKey]);
+    }, [apiKey, orgId]);
 
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -120,6 +125,24 @@ const ApiKeyModal: React.FC = () => {
                             placeholder="sk-..."
                             type="password"
                             autoFocus
+                            onKeyDown={handleKeyDown}
+                            sx={{ mb: 2 }}
+                        />
+
+                        <Divider sx={{ my: 2 }} />
+
+                        <Typography variant="body2" color="text.secondary" sx={{ my: 1 }}>
+                            Optional: If you're using an organization account, enter your Organization ID below.
+                        </Typography>
+
+                        <TextField
+                            label="Organization ID"
+                            fullWidth
+                            variant="outlined"
+                            value={orgId}
+                            onChange={(e) => setOrgIdState(e.target.value)}
+                            placeholder="org-..."
+                            helperText="Leave blank if not using an organization account"
                             onKeyDown={handleKeyDown}
                         />
                     </Box>

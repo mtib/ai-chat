@@ -14,6 +14,7 @@ export const OPENAI_CONFIG = {
     DEFAULT_MODEL: 'gpt-4o-mini-2024-07-18',
     TEMPERATURE: 0.7,
     STORAGE_KEY: 'openai_api_key',
+    STORAGE_ORG_KEY: 'openai_org_id',
     DEFAULT_MAX_TOKENS: 1000,
     // DALL-E 3 settings
     DALLE_MODEL: 'dall-e-3',

@@ -7,6 +7,7 @@ import { findRelevantMessages } from './contextUtils';
 // This should be stored securely and not in client-side code in production
 // Consider using environment variables or a backend service
 let OPENAI_API_KEY = ENV_API_KEY;
+let OPENAI_ORG_ID = '';
 
 /**
  * Sets the OpenAI API key and saves it to local storage
@@ -27,6 +28,24 @@ export const getApiKey = (): string => {
 };
 
 /**
+ * Sets the OpenAI Organization ID and saves it to local storage
+ */
+export const setOrgId = (orgId: string): void => {
+    OPENAI_ORG_ID = orgId;
+    localStorage.setItem(OPENAI_CONFIG.STORAGE_ORG_KEY, orgId);
+};
+
+/**
+ * Gets the OpenAI Organization ID from memory or local storage
+ */
+export const getOrgId = (): string => {
+    if (!OPENAI_ORG_ID) {
+        OPENAI_ORG_ID = localStorage.getItem(OPENAI_CONFIG.STORAGE_ORG_KEY) || '';
+    }
+    return OPENAI_ORG_ID;
+};
+
+/**
  * Interface for DALL-E image generation response
  */
 export interface ImageResponse {
@@ -39,12 +58,23 @@ export interface ImageResponse {
  */
 export const generateImageWithDALLE = async (prompt: string): Promise<ImageResponse> => {
     const apiKey = getApiKey();
+    const orgId = getOrgId();
 
     if (!apiKey) {
         throw new Error('API key not set. Please set your OpenAI API key.');
     }
 
     try {
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        };
+
+        // Add Organization header if org ID is set
+        if (orgId) {
+            headers['OpenAI-Organization'] = orgId;
+        }
+
         const response = await axios.post(
             `${OPENAI_CONFIG.BASE_URL}${OPENAI_CONFIG.ENDPOINTS.IMAGE_GENERATION}`,
             {
@@ -55,12 +85,7 @@ export const generateImageWithDALLE = async (prompt: string): Promise<ImageRespo
                 quality: OPENAI_CONFIG.DALLE_QUALITY,
                 response_format: "url"
             },
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                }
-            }
+            { headers }
         );
 
         return {
@@ -80,6 +105,7 @@ export const generateImageWithDALLE = async (prompt: string): Promise<ImageRespo
  */
 export const sendMessageToOpenAI = async (conversation: Conversation): Promise<string> => {
     const apiKey = getApiKey();
+    const orgId = getOrgId();
 
     if (!apiKey) {
         throw new Error('API key not set. Please set your OpenAI API key.');
@@ -113,6 +139,16 @@ export const sendMessageToOpenAI = async (conversation: Conversation): Promise<s
                 : [{ role: 'system', content: SYSTEM_PROMPT }, ...conversation.messages];
         }
 
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        };
+
+        // Add Organization header if org ID is set
+        if (orgId) {
+            headers['OpenAI-Organization'] = orgId;
+        }
+
         const response = await axios.post(
             `${OPENAI_CONFIG.BASE_URL}${OPENAI_CONFIG.ENDPOINTS.CHAT_COMPLETION}`,
             {
@@ -120,12 +156,7 @@ export const sendMessageToOpenAI = async (conversation: Conversation): Promise<s
                 messages: messagesToSend,
                 temperature: OPENAI_CONFIG.TEMPERATURE,
             },
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                }
-            }
+            { headers }
         );
 
         return response.data.choices[0].message.content;
