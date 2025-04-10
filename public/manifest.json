@@ -1,0 +1,17 @@
+{
+    "name": "chat.mtib.dev",
+    "short_name": "chat",
+    "description": "AI-powered conversation assistant",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#12071E",
+    "theme_color": "#12071E",
+    "icons": [
+        {
+            "src": "ai_chat.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}

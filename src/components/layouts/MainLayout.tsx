@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Box, Drawer, AppBar, Toolbar, Typography, IconButton, useMediaQuery, Theme } from '@mui/material';
-import ChatIcon from '@mui/icons-material/Chat';
 import MenuIcon from '@mui/icons-material/Menu';
 import Sidebar from '../sidebar/Sidebar';
 
@@ -49,7 +48,18 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                             <MenuIcon />
                         </IconButton>
                     )}
-                    <ChatIcon sx={{ mr: 2 }} />
+                    <Box
+                        component="img"
+                        sx={{
+                            height: 32,
+                            width: 32,
+                            mr: 2,
+                            display: 'flex',
+                            alignItems: 'center',
+                        }}
+                        alt="AI Chat"
+                        src="/ai_chat.png"
+                    />
                     <Typography variant="h6" noWrap component="div">
                         chat.mtib.dev
                     </Typography>
