@@ -8,7 +8,7 @@
     "theme_color": "#12071E",
     "icons": [
         {
-            "src": "ai_chat.png",
+            "src": "ai_chat_transparent.png",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "any maskable"

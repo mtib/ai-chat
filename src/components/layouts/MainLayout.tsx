@@ -58,7 +58,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                             alignItems: 'center',
                         }}
                         alt="AI Chat"
-                        src="/ai_chat.png"
+                        src="/ai_chat_transparent.png"
                     />
                     <Typography variant="h6" noWrap component="div">
                         chat.mtib.dev
