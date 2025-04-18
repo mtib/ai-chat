@@ -8,6 +8,7 @@ A simple Flask-based server that connects to Redis for data storage and provides
 - Proxy HTTP requests and cache their responses
 - Docker ready for easy deployment
 - Secure access with bearer token authentication
+- Support for authentication via URL parameter
 
 ## API Endpoints
 
@@ -36,10 +37,25 @@ A simple Flask-based server that connects to Redis for data storage and provides
 
 ## Authentication
 
-All endpoints (except basic health checks) require authentication using a Bearer token in the Authorization header:
+All endpoints (except basic health checks) require authentication. There are two ways to authenticate:
 
+### 1. Bearer Token Authentication
+
+Use a Bearer token in the Authorization header:
 ```
 Authorization: Bearer your-auth-token
+```
+
+### 2. URL Parameter Authentication
+
+Append the auth token as a base64-encoded URL parameter:
+```
+?auth=<base64_encoded_token>
+```
+
+Example:
+```
+http://localhost:7781/data/mykey?auth=ZGV2ZWxvcG1lbnQtdG9rZW4tY2hhbmdlLW1l
 ```
 
 The default token is `development-token-change-me` which can be overridden by setting the `JSON_SERVER_AUTH_TOKEN` environment variable.
@@ -93,12 +109,20 @@ docker run -p 7781:7781 -e REDIS_HOST=your-redis-host -e JSON_SERVER_AUTH_TOKEN=
 
 ### Storing Data
 ```bash
+# Using header authentication
 curl -X PUT -d "Some data to store" -H "Authorization: Bearer your-auth-token" http://localhost:7781/data/mykey
+
+# Using URL parameter authentication
+curl -X PUT -d "Some data to store" http://localhost:7781/data/mykey?auth=$(echo -n "your-auth-token" | base64)
 ```
 
 ### Retrieving Data
 ```bash
+# Using header authentication
 curl -H "Authorization: Bearer your-auth-token" http://localhost:7781/data/mykey
+
+# Using URL parameter authentication
+curl http://localhost:7781/data/mykey?auth=$(echo -n "your-auth-token" | base64)
 ```
 
 ### Proxying a Request
@@ -109,5 +133,10 @@ REQUEST='{
   "headers": {"Authorization": "Bearer token"}
 }'
 ENCODED=$(echo -n "$REQUEST" | base64 -w 0)
+
+# Using header authentication
 curl -H "Authorization: Bearer your-auth-token" "http://localhost:7781/proxy/$ENCODED"
+
+# Using URL parameter authentication
+curl "http://localhost:7781/proxy/$ENCODED?auth=$(echo -n "your-auth-token" | base64)"
 ```

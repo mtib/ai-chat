@@ -24,17 +24,33 @@ AUTH_TOKEN = os.environ.get('JSON_SERVER_AUTH_TOKEN', 'development-token-change-
 # Get the Redis key prefix from environment variable
 REDIS_KEY_PREFIX = os.environ.get('REDIS_KEY_PREFIX', 'json_server')
 
+def get_auth_token():
+    """Extract auth token from headers or URL parameters"""
+    # Check for URL parameter auth
+    url_token = request.args.get('auth')
+    if url_token:
+        try:
+            # Decode base64 token from URL
+            decoded_token = base64.urlsafe_b64decode(url_token.encode('utf-8')).decode('utf-8')
+            return decoded_token
+        except Exception:
+            return None
+    
+    # Check for Authorization header
+    auth_header = request.headers.get('Authorization')
+    if auth_header and auth_header.startswith('Bearer '):
+        return auth_header.split(' ')[1]
+    
+    return None
+
 def require_auth(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        auth_header = request.headers.get('Authorization')
+        token = get_auth_token()
         
-        # Check if Authorization header exists and has the correct format
-        if not auth_header or not auth_header.startswith('Bearer '):
+        # Check if token exists
+        if not token:
             return jsonify({"status": "error", "message": "Authorization required"}), 401
-        
-        # Extract the token
-        token = auth_header.split(' ')[1]
         
         # Validate the token
         if token != AUTH_TOKEN:
@@ -46,24 +62,17 @@ def require_auth(f):
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint that also verifies authentication"""
-    auth_header = request.headers.get('Authorization')
+    token = get_auth_token()
     
-    # If no Authorization header, return basic health info
-    if not auth_header:
+    # If no token, return basic health info
+    if not token:
         return jsonify({
             "status": "ok",
             "auth_required": True,
             "message": "Server is running, but authentication is required for data access"
         })
     
-    # If Authorization header exists, validate it
-    if not auth_header.startswith('Bearer '):
-        return jsonify({
-            "status": "error", 
-            "message": "Invalid Authorization format, use: Bearer <token>"
-        }), 401
-    
-    token = auth_header.split(' ')[1]
+    # If token is provided, validate it
     if token != AUTH_TOKEN:
         return jsonify({
             "status": "error", 

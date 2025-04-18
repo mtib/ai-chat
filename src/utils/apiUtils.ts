@@ -4,6 +4,7 @@ import { Conversation, Message, ServerAssistantConfig } from '../types';
 import { ENV_API_KEY, OPENAI_CONFIG, SYSTEM_PROMPT } from '../config/apiConfig';
 import { findRelevantMessages } from './contextUtils';
 import { generateEmbedding, getAssistantContext, storeAssistantContent } from './assistantServerUtils';
+import { getJsonServerUrl, getJsonServerToken } from '../components/StorageServerModal';
 
 // This should be stored securely and not in client-side code in production
 // Consider using environment variables or a backend service
@@ -55,6 +56,40 @@ export interface ImageResponse {
 }
 
 /**
+ * Proxies an image URL through the JSON server if configured
+ */
+export const proxyImageUrl = (imageUrl: string): string => {
+    const serverUrl = getJsonServerUrl();
+    const serverToken = getJsonServerToken();
+
+    // If no server is configured, return the original URL
+    if (!serverUrl || !serverToken) {
+        return imageUrl;
+    }
+
+    try {
+        // Create the proxy request configuration
+        const proxyConfig = {
+            url: imageUrl,
+            method: "GET"
+        };
+
+        // Base64 encode the proxy configuration
+        const encodedConfig = btoa(JSON.stringify(proxyConfig));
+
+        // Base64 encode the auth token for URL parameter
+        const encodedAuthToken = btoa(serverToken);
+
+        // Return the proxied URL with auth parameter
+        return `${serverUrl}/proxy/${encodedConfig}?auth=${encodedAuthToken}`;
+    } catch (error) {
+        console.error('Error creating proxy URL:', error);
+        // Fall back to the original URL if something goes wrong
+        return imageUrl;
+    }
+};
+
+/**
  * Generates an image using DALL-E 3
  */
 export const generateImageWithDALLE = async (prompt: string): Promise<ImageResponse> => {
@@ -89,8 +124,13 @@ export const generateImageWithDALLE = async (prompt: string): Promise<ImageRespo
             { headers }
         );
 
+        const originalImageUrl = response.data.data[0].url;
+
+        // Proxy the image URL if a JSON server is configured
+        const imageUrl = proxyImageUrl(originalImageUrl);
+
         return {
-            imageUrl: response.data.data[0].url,
+            imageUrl,
             revisedPrompt: response.data.data[0].revised_prompt
         };
     } catch (error) {
