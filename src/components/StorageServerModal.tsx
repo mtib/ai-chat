@@ -16,6 +16,7 @@ import {
 // Storage keys for localStorage
 const URL_STORAGE_KEY = 'json_server_url';
 const TOKEN_STORAGE_KEY = 'json_server_token';
+const PROFILE_STORAGE_KEY = 'json_server_profile';
 
 /**
  * Gets the JSON Server URL from localStorage or returns an empty string
@@ -46,12 +47,27 @@ export const setJsonServerToken = (token: string): void => {
 };
 
 /**
+ * Gets the profile identifier from localStorage or returns a default value
+ */
+export const getJsonServerProfile = (): string => {
+    return localStorage.getItem(PROFILE_STORAGE_KEY) || 'default';
+};
+
+/**
+ * Sets the profile identifier and saves it to localStorage
+ */
+export const setJsonServerProfile = (profile: string): void => {
+    localStorage.setItem(PROFILE_STORAGE_KEY, profile);
+};
+
+/**
  * Modal component for setting and managing the JSON Server URL and authentication
  */
 const StorageServerModal: React.FC = () => {
     const [open, setOpen] = useState(false);
     const [serverUrl, setServerUrl] = useState('');
     const [authToken, setAuthToken] = useState('');
+    const [profileId, setProfileId] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const theme = useTheme();
@@ -60,8 +76,10 @@ const StorageServerModal: React.FC = () => {
         // Load saved values when component mounts
         const url = getJsonServerUrl();
         const token = getJsonServerToken();
+        const profile = getJsonServerProfile();
         setServerUrl(url);
         setAuthToken(token);
+        setProfileId(profile);
     }, []);
 
     const handleSave = useCallback(() => {
@@ -75,19 +93,25 @@ const StorageServerModal: React.FC = () => {
             return;
         }
 
+        if (!profileId.trim()) {
+            setError('Please enter a profile identifier');
+            return;
+        }
+
         try {
             // Validate URL format
             new URL(serverUrl);
 
-            // Save the URL and token
+            // Save the URL, token, and profile
             setJsonServerUrl(serverUrl);
             setJsonServerToken(authToken);
+            setJsonServerProfile(profileId);
             setError('');
             setOpen(false);
         } catch (err) {
             setError('Please enter a valid URL including the protocol (e.g., http://localhost:7781)');
         }
-    }, [serverUrl, authToken]);
+    }, [serverUrl, authToken, profileId]);
 
     const handleTest = useCallback(async () => {
         if (!serverUrl.trim()) {
@@ -223,6 +247,27 @@ const StorageServerModal: React.FC = () => {
                             onChange={(e) => setAuthToken(e.target.value)}
                             placeholder="Enter your token"
                             type="password"
+                            onKeyDown={handleKeyDown}
+                            sx={{ mb: 2 }}
+                        />
+
+                        <Divider sx={{ my: 2 }} />
+
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                            Profile Identifier (Required)
+                        </Typography>
+
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                            Enter a unique identifier for your profile. This will be used as a prefix for storing your conversations.
+                        </Typography>
+
+                        <TextField
+                            label="Profile Identifier"
+                            fullWidth
+                            variant="outlined"
+                            value={profileId}
+                            onChange={(e) => setProfileId(e.target.value)}
+                            placeholder="default"
                             onKeyDown={handleKeyDown}
                             sx={{ mb: 2 }}
                         />
