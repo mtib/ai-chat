@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Paper, Avatar, IconButton, Menu, MenuItem, ListItemIcon, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
+import { Box, Paper, Avatar, IconButton, Menu, MenuItem, ListItemIcon, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Stack } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -121,39 +121,36 @@ const MessageItem: React.FC<MessageItemProps> = ({
 
     return (
         <>
-            <Box
+            <Stack
+                direction="row"
+                justifyContent="center"
+                alignItems="flex-start"
                 sx={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    justifyContent: 'center',
-                    alignItems: 'flex-start',
                     transition: 'background-color 0.1s',
                     '&:hover': {
                         backgroundColor: '#ff00ff0a',
                     },
                 }}
             >
-                <Box
+                <Stack
+                    direction="column"
                     sx={{
                         width: { xs: '100%', md: 'min(80%, 50rem)' }, // More space on mobile
                         px: { xs: 1, sm: 2, md: 0 },
                         pt: 1,
-                        display: 'flex',
-                        flexDirection: 'column',
                     }}
                 >
-                    <Box sx={{
-                        display: 'flex',
-                        flexDirection: 'row',
-                        justifyContent: 'space-between',
-                        py: 0.5
-                    }}>
-                        <Box
-                            sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1,
-                            }}
+                    <Stack
+                        direction="row"
+                        justifyContent="space-between"
+                        sx={{
+                            py: 0.5
+                        }}
+                    >
+                        <Stack
+                            direction="row"
+                            alignItems="center"
+                            spacing={1}
                         >
                             <Avatar
                                 sx={{
@@ -179,9 +176,9 @@ const MessageItem: React.FC<MessageItemProps> = ({
                                     {message.role === 'user' ? 'YOU' : 'AI'}
                                 </Typography>
                             )}
-                        </Box>
+                        </Stack>
                         {/* Action buttons and system instruction in same row */}
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Stack direction="row" alignItems="center" spacing={1}>
                             {message.role !== 'system' && (
                                 <IconButton size="small" onClick={handleStarClick} sx={{ opacity: 0.7, '&:hover': { opacity: 1 } }}>
                                     {message.starred ?
@@ -193,8 +190,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
                             <IconButton size="small" onClick={handleOpenMenu} sx={{ opacity: 0.5, '&:hover': { opacity: 1 } }}>
                                 <MoreVertIcon fontSize="small" />
                             </IconButton>
-                        </Box>
-                    </Box>
+                        </Stack>
+                    </Stack>
 
                     {/* Message content */}
                     <Box sx={{
@@ -274,8 +271,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
                             {message.content}
                         </Markdown>
                     </Box>
-                </Box>
-            </Box>
+                </Stack>
+            </Stack>
 
             {/* Message actions menu */}
             <Menu

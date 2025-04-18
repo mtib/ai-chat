@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Box, TextField, Button, Divider, Tooltip } from '@mui/material';
+import { Box, TextField, Button, Divider, Tooltip, Stack } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import UploadIcon from '@mui/icons-material/Upload';
 import { useConversationContext } from '../../contexts/ConversationContext';
@@ -65,7 +65,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
 
     return (
         <>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, px: 1 }}>
+            <Stack direction="row" alignItems="center" sx={{ mb: 1, px: 1 }}>
                 <TextField
                     fullWidth
                     size="small"
@@ -76,9 +76,9 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
                         startAdornment: <SearchIcon fontSize="small" sx={{ mr: 1 }} />,
                     }}
                 />
-            </Box>
+            </Stack>
 
-            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1, px: 1 }}>
+            <Stack direction="row" justifyContent="center" sx={{ mb: 1, px: 1 }}>
                 <Tooltip title="Import conversation from file">
                     <Button
                         startIcon={<UploadIcon />}
@@ -97,15 +97,15 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
                     style={{ display: 'none' }}
                     accept=".json"
                 />
-            </Box>
+            </Stack>
 
             <Divider />
             <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
                 <ConversationList onItemClick={onItemClick} />
             </Box>
-            <Box sx={{ display: 'flex', direction: 'column', px: 1 }}>
+            <Stack direction="column" sx={{ px: 1 }}>
                 <ApiKeyModal />
-            </Box>
+            </Stack>
         </>
     );
 };

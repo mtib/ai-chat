@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Box, Button, ButtonGroup, Tooltip, useMediaQuery, Theme, Paper, TextField } from '@mui/material';
+import { TextField, Button, Paper, Stack, Tooltip, useMediaQuery, Theme } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import ImageIcon from '@mui/icons-material/Image';
@@ -71,14 +71,13 @@ const MessageInput: React.FC<MessageInputProps> = ({
     const primaryButtonText = value.trim() ? "Send" : "Prompt";
 
     return (
-        <Box
+        <Stack
             component="form"
             onSubmit={onSubmit}
             onClick={handleContainerClick}
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={{ xs: 1, sm: 0 }}
             sx={{
-                display: 'flex',
-                flexDirection: { xs: 'column', sm: 'row' },
-                gap: { xs: 1, sm: 0 },
                 maxHeight: '120px',
                 flexGrow: 1,
             }}
@@ -129,9 +128,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
                     }}
                 />
             </Paper>
-            <ButtonGroup
-                variant="contained"
-                orientation={isMobile ? "horizontal" : "vertical"}
+            <Stack
+                direction={{ xs: 'row', sm: 'column' }}
+                spacing={1}
                 sx={{
                     height: '100%',
                     width: { xs: '100%', sm: 'auto' },
@@ -186,8 +185,8 @@ const MessageInput: React.FC<MessageInputProps> = ({
                         {!isMobile && "Remember"}
                     </Button>
                 )}
-            </ButtonGroup>
-        </Box>
+            </Stack>
+        </Stack>
     );
 };
 

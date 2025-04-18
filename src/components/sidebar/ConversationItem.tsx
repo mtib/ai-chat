@@ -1,4 +1,3 @@
-// filepath: /Users/mtib/Code/dnd-writer/src/components/sidebar/ConversationItem.tsx
 import React, { useState } from 'react';
 import {
     ListItem,
@@ -17,6 +16,7 @@ import {
     Button,
     Typography,
     Chip,
+    Stack,
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import StorageIcon from '@mui/icons-material/Storage';
@@ -152,38 +152,34 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
     if (isRenaming) {
         return (
             <ListItem disablePadding>
-                <Box
+                <Stack
                     component="form"
+                    direction="row"
+                    alignItems="center"
+                    sx={{ width: '100%', px: 2, py: 0.5 }}
                     onSubmit={handleRenameSubmit}
-                    onClick={(e) => e.stopPropagation()}
-                    sx={{
-                        display: 'flex',
-                        width: '100%',
-                        p: 1,
-                        bgcolor: isActive ? 'action.selected' : 'transparent',
-                    }}
                 >
                     <TextField
-                        size="small"
                         autoFocus
+                        fullWidth
+                        size="small"
                         value={newTitle}
                         onChange={(e) => setNewTitle(e.target.value)}
-                        fullWidth
                         onKeyDown={(e) => {
                             if (e.key === 'Escape') {
                                 handleRenameCancel(e as unknown as React.MouseEvent);
                             }
                         }}
                     />
-                    <Box sx={{ display: 'flex', ml: 1 }}>
+                    <Stack direction="row" sx={{ ml: 1 }}>
                         <IconButton size="small" onClick={handleRenameSubmit} type="submit">
                             ✓
                         </IconButton>
                         <IconButton size="small" onClick={handleRenameCancel}>
                             ✗
                         </IconButton>
-                    </Box>
-                </Box>
+                    </Stack>
+                </Stack>
             </ListItem>
         );
     }
@@ -201,25 +197,23 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
                         py: 0.5
                     }}
                 >
-                    <Box sx={{
-                        display: 'flex',
-                        width: '100%',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                    }}>
-                        <Box sx={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            overflow: 'hidden',
-                            flexGrow: 1
-                        }}>
-                            <Box sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 0.5,
-                                width: '100%',
-                                overflow: 'hidden'
-                            }}>
+                    <Stack
+                        direction="row"
+                        width="100%"
+                        justifyContent="space-between"
+                        alignItems="center"
+                    >
+                        <Stack
+                            direction="column"
+                            sx={{ overflow: 'hidden', flexGrow: 1 }}
+                        >
+                            <Stack
+                                direction="row"
+                                alignItems="center"
+                                gap={0.5}
+                                width="100%"
+                                sx={{ overflow: 'hidden' }}
+                            >
                                 {hasServerAssistant && (
                                     <Tooltip title={`Server Assistant: ${conversation.serverAssistant?.baseUrl}`}>
                                         <StorageIcon fontSize="small" color="secondary" sx={{ opacity: 0.7 }} />
@@ -236,7 +230,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
                                 >
                                     {conversation.title}
                                 </Typography>
-                            </Box>
+                            </Stack>
                             <Typography
                                 variant="caption"
                                 color="primary.main"
@@ -244,7 +238,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
                             >
                                 {lastModified}
                             </Typography>
-                        </Box>
+                        </Stack>
                         <IconButton
                             size="small"
                             edge="end"
@@ -253,7 +247,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
                         >
                             <MoreVertIcon fontSize="small" />
                         </IconButton>
-                    </Box>
+                    </Stack>
                 </ListItemButton>
                 <Menu
                     anchorEl={anchorEl}

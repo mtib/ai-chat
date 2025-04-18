@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Drawer, AppBar, Toolbar, Typography, IconButton, useMediaQuery, Theme } from '@mui/material';
+import { Box, Drawer, AppBar, Toolbar, Typography, IconButton, useMediaQuery, Theme, Stack } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import Sidebar from '../sidebar/Sidebar';
 
@@ -48,21 +48,20 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                             <MenuIcon />
                         </IconButton>
                     )}
-                    <Box
-                        component="img"
-                        sx={{
-                            height: 32,
-                            width: 32,
-                            mr: 2,
-                            display: 'flex',
-                            alignItems: 'center',
-                        }}
-                        alt="AI Chat"
-                        src="/ai_chat_transparent.png"
-                    />
-                    <Typography variant="h6" noWrap component="div">
-                        chat.mtib.dev
-                    </Typography>
+                    <Stack direction="row" alignItems="center" spacing={2}>
+                        <Box
+                            component="img"
+                            sx={{
+                                height: 32,
+                                width: 32,
+                            }}
+                            alt="AI Chat"
+                            src="/ai_chat_transparent.png"
+                        />
+                        <Typography variant="h6" noWrap component="div">
+                            chat.mtib.dev
+                        </Typography>
+                    </Stack>
                 </Toolbar>
             </AppBar>
 
@@ -80,14 +79,15 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 }}
             >
                 <Toolbar />
-                <Box sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    height: 'calc(100% - 64px)', // Changed from 100vh
-                    overflow: 'hidden'
-                }}>
+                <Stack
+                    direction="column"
+                    sx={{
+                        height: 'calc(100% - 64px)', // Changed from 100vh
+                        overflow: 'hidden'
+                    }}
+                >
                     <Sidebar onItemClick={handleDrawerClose} />
-                </Box>
+                </Stack>
             </Drawer>
 
             <Box
