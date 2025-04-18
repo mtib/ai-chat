@@ -2,6 +2,16 @@
 
 A chat application with support for OpenAI models and custom server assistants.
 
+## Features
+
+- Chat with OpenAI's latest models
+- Generate images with DALL-E
+- Support for custom server assistants with contextual data
+- Message starring for important information
+- Export and import conversations
+- Conversation search and management
+- PWA support for offline access
+
 ## Server Assistant API
 
 ![](docs/assistant_server_setup.svg)
@@ -27,4 +37,8 @@ When you chat with a server assistant:
 - Relevant context from your server is added to OpenAI requests
 - Your conversation history remains private and doesn't include the assistant's context
 
-For more details on implementing a server, see [assistant_server/README.md](assistant_server/README.md).
+## Additional Documentation
+
+- [Assistant Server Implementation](assistant_server/README.md)
+- [Assistant Server Setup Guide](assistant_server/SETUP.md)
+- [JSON Server with Redis](json_server/README.md)
