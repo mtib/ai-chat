@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Conversation } from '../types';
 import { loadConversations, saveConversationToFile, deleteConversation as deleteConversationFile, updateConversationTitle as updateConversationTitleFile } from '../utils/fileUtils';
 import { filterConversations } from '../utils/searchUtils';
@@ -15,6 +15,25 @@ import { getJsonServerUrl, getJsonServerToken, SERVER_CONFIG_CHANGED_EVENT } fro
 const ACTIVE_CONVERSATION_KEY = 'active_conversation_id';
 
 /**
+ * Creates a debounced function that delays invoking func until after wait milliseconds
+ * have elapsed since the last time the debounced function was invoked.
+ */
+const debounce = <F extends (...args: any[]) => any>(func: F, wait: number) => {
+    let timeout: NodeJS.Timeout | null = null;
+
+    return function (...args: Parameters<F>) {
+        if (timeout) {
+            clearTimeout(timeout);
+        }
+
+        timeout = setTimeout(() => {
+            func(...args);
+            timeout = null;
+        }, wait);
+    };
+};
+
+/**
  * Hook to manage conversations including loading, creating, updating, deleting
  * and filtering conversations based on search
  */
@@ -24,6 +43,7 @@ export const useConversations = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [serverConfigured, setServerConfigured] = useState(false);
+    const loadAllConversationsRef = useRef<() => Promise<void>>();
 
     // Sort conversations by lastModified timestamp (most recent first)
     const sortConversationsByModified = (convs: Conversation[]): Conversation[] => {
@@ -35,7 +55,7 @@ export const useConversations = () => {
     };
 
     // Load conversations function that can be reused
-    const loadAllConversations = useCallback(async () => {
+    const loadAllConversationsImpl = useCallback(async () => {
         setIsLoading(true);
         try {
             // Check if a server is configured
@@ -146,6 +166,19 @@ export const useConversations = () => {
         } finally {
             setIsLoading(false);
         }
+    }, []);
+
+    // Create a debounced version of the load function that triggers at most once every 100ms
+    useEffect(() => {
+        loadAllConversationsRef.current = debounce(loadAllConversationsImpl, 100);
+    }, [loadAllConversationsImpl]);
+
+    // Memoized function to call the debounced implementation
+    const loadAllConversations = useCallback(() => {
+        if (loadAllConversationsRef.current) {
+            return loadAllConversationsRef.current();
+        }
+        return Promise.resolve();
     }, []);
 
     // Load initial conversations
