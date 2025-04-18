@@ -126,6 +126,11 @@ export const calculateLiveRelevanceScores = (conversation: Conversation, current
 export const findRelevantMessages = (conversation: Conversation, newQuery: string): Message[] => {
     const allMessages = conversation.messages.slice();
 
+    // If we have very few messages, just return them all
+    if (allMessages.length <= MAX_CONTEXT_MESSAGES) {
+        return allMessages;
+    }
+
     // Always include the system message if present
     const systemMessages = allMessages.filter(msg => msg.role === 'system');
 
@@ -137,32 +142,36 @@ export const findRelevantMessages = (conversation: Conversation, newQuery: strin
         msg.role !== 'system' && !msg.starred
     );
 
-    // If we have very few messages, just return them all
-    if (allMessages.length <= MAX_CONTEXT_MESSAGES) {
-        return allMessages;
-    }
+    // Get the most recent 10 messages (excluding ones that are already in system or starred)
+    const recentMessages = regularMessages
+        .slice(-10)
+        .filter(msg => !systemMessages.includes(msg) && !starredMessages.includes(msg));
 
     // Calculate IDF across all regular messages for better scoring
     const idf = calculateInverseDocumentFrequency(regularMessages);
 
     // Score regular messages by relevance to the query
-    const scoredMessages = regularMessages.map(msg => ({
-        message: msg,
-        score: calculateRelevanceScore(newQuery, msg, idf)
-    }));
+    const scoredMessages = regularMessages
+        .filter(msg => !recentMessages.includes(msg)) // Exclude recent messages from scoring
+        .map(msg => ({
+            message: msg,
+            score: calculateRelevanceScore(newQuery, msg, idf)
+        }));
 
     // Sort by score descending
     scoredMessages.sort((a, b) => b.score - a.score);
 
-    // Select top scoring messages up to limit
+    // Select top scoring messages up to remaining limit after accounting for recent messages
+    const remainingSlots = MAX_CONTEXT_MESSAGES - recentMessages.length;
     const selectedRegularMessages = scoredMessages
-        .slice(0, MAX_CONTEXT_MESSAGES)
+        .slice(0, remainingSlots > 0 ? remainingSlots : 0)
         .map(item => item.message);
 
     // Combine all selected messages
     const selectedMessages = [
         ...systemMessages,
         ...starredMessages,
+        ...recentMessages,
         ...selectedRegularMessages
     ];
 

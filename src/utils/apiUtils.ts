@@ -144,6 +144,15 @@ export const generateImageWithDALLE = async (prompt: string): Promise<ImageRespo
 };
 
 /**
+ * Removes Markdown image links from a string
+ * Matches patterns like ![alt text](image-url) or just ![](image-url)
+ */
+export const removeMarkdownImageLinks = (text: string): string => {
+    // Regex to match Markdown image links: ![alt text](url) or ![](url)
+    return text.replace(/!\[.*?\]\(.*?\)/g, '');
+};
+
+/**
  * Sends a message to OpenAI API and returns the response
  * Uses context selection to manage token usage
  * Can incorporate assistant server context if provided
@@ -224,6 +233,14 @@ export const sendMessageToOpenAI = async (conversation: Conversation): Promise<s
                 ? [...conversation.messages]
                 : [{ role: 'system', content: SYSTEM_PROMPT }, ...conversation.messages];
         }
+
+        // Remove Markdown image links from all user messages
+        messagesToSend = messagesToSend.map(msg => {
+            return {
+                ...msg,
+                content: removeMarkdownImageLinks(msg.content)
+            };
+        });
 
         const headers: Record<string, string> = {
             'Content-Type': 'application/json',
