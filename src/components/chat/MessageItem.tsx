@@ -12,6 +12,22 @@ import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import { Message } from '../../types';
 import Markdown from 'markdown-to-jsx';
+import MermaidDiagram from '../MermaidDiagram';
+
+// Helper function to extract Mermaid diagram code from markdown code blocks
+const extractMermaidDiagrams = (content: string, index: number): { markdown: string, diagrams: Array<{ id: string, code: string; }>; } => {
+    const diagrams: Array<{ id: string, code: string; }> = [];
+    let diagramCounter = 0;
+
+    // Replace mermaid code blocks with placeholders
+    const markdown = content.replace(/```mermaid\n([\s\S]*?)```/g, (match, code) => {
+        const id = `mermaid-diagram-${index}-${diagramCounter++}`;
+        diagrams.push({ id, code: code.trim() });
+        return `<div id="${id}"></div>`;
+    });
+
+    return { markdown, diagrams };
+};
 
 interface MessageItemProps {
     message: Message;
@@ -119,6 +135,9 @@ const MessageItem: React.FC<MessageItemProps> = ({
         }
     };
 
+    // Process the content to extract mermaid diagrams
+    const { markdown, diagrams } = extractMermaidDiagrams(message.content, index);
+
     return (
         <>
             <Stack
@@ -201,75 +220,94 @@ const MessageItem: React.FC<MessageItemProps> = ({
                         '& > * > *:first-child': { pt: 0, mt: 0 },
                         fontSize: { xs: '0.9rem', sm: '1rem' } // Slightly smaller font on mobile
                     }}>
-                        <Markdown options={{
-                            forceBlock: true,
-                            overrides: {
-                                pre: {
-                                    component: ({ children, ...props }) => {
-                                        return (
-                                            <Box
-                                                component="pre"
-                                                sx={{
-                                                    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                                                    p: 1,
-                                                    borderRadius: 1,
-                                                    overflowX: 'auto',
-                                                    mb: 1,
-                                                    mt: 1,
-                                                    '& code': {
-                                                        fontFamily: 'Sono',
-                                                        fontVariationSettings: "'MONO' 1",
-                                                        backgroundColor: 'transparent',
-                                                        p: 0
-                                                    },
-                                                }}
-                                                {...props}
-                                            >
-                                                {children}
-                                            </Box>
-                                        );
+                        {isEditing ? (
+                            <TextField
+                                fullWidth
+                                multiline
+                                value={editContent}
+                                onChange={handleEditMessageChange}
+                                variant="outlined"
+                            />
+                        ) : (
+                            <>
+                                <Markdown options={{
+                                    forceBlock: true,
+                                    overrides: {
+                                        pre: {
+                                            component: ({ children, ...props }) => {
+                                                return (
+                                                    <Box
+                                                        component="pre"
+                                                        sx={{
+                                                            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                                                            p: 1,
+                                                            borderRadius: 1,
+                                                            overflowX: 'auto',
+                                                            mb: 1,
+                                                            mt: 1,
+                                                            '& code': {
+                                                                fontFamily: 'Sono',
+                                                                fontVariationSettings: "'MONO' 1",
+                                                                backgroundColor: 'transparent',
+                                                                p: 0
+                                                            },
+                                                        }}
+                                                        {...props}
+                                                    >
+                                                        {children}
+                                                    </Box>
+                                                );
+                                            }
+                                        },
+                                        code: {
+                                            component: ({ children, className }) => {
+                                                const isInline = !className?.includes('language-');
+                                                return (
+                                                    <Box
+                                                        component="code"
+                                                        sx={{
+                                                            fontFamily: 'Sono',
+                                                            fontVariationSettings: "'MONO' 1",
+                                                            backgroundColor: isInline ? 'rgba(0, 0, 0, 0.1)' : 'transparent',
+                                                            px: isInline ? 0.5 : 0,
+                                                            py: isInline ? 0.2 : 0,
+                                                            borderRadius: isInline ? 1 : 0,
+                                                            display: 'inline',
+                                                            fontSize: '0.875rem',
+                                                        }}
+                                                    >
+                                                        {children}
+                                                    </Box>
+                                                );
+                                            }
+                                        },
+                                        img: {
+                                            component: ({ src, alt }) => (
+                                                <img
+                                                    src={src}
+                                                    alt={alt}
+                                                    style={{
+                                                        maxWidth: 'min(100%, 1024px)',
+                                                        marginLeft: 'auto',
+                                                        marginRight: 'auto',
+                                                        borderRadius: 8,
+                                                    }}
+                                                />
+                                            )
+                                        },
                                     }
-                                },
-                                code: {
-                                    component: ({ children, className }) => {
-                                        const isInline = !className?.includes('language-');
-                                        return (
-                                            <Box
-                                                component="code"
-                                                sx={{
-                                                    fontFamily: 'Sono',
-                                                    fontVariationSettings: "'MONO' 1",
-                                                    backgroundColor: isInline ? 'rgba(0, 0, 0, 0.1)' : 'transparent',
-                                                    px: isInline ? 0.5 : 0,
-                                                    py: isInline ? 0.2 : 0,
-                                                    borderRadius: isInline ? 1 : 0,
-                                                    display: 'inline',
-                                                    fontSize: '0.875rem',
-                                                }}
-                                            >
-                                                {children}
-                                            </Box>
-                                        );
-                                    }
-                                },
-                                img: {
-                                    component: ({ src, alt }) => (
-                                        <img
-                                            src={src}
-                                            alt={alt}
-                                            style={{
-                                                maxWidth: 'min(100%, 1024px)',
-                                                marginLeft: 'auto',
-                                                marginRight: 'auto',
-                                                borderRadius: 8,
-                                            }}
-                                        />
-                                    )
-                                },
-                            }
-                        }}>
-                            {message.content}
-                        </Markdown>
+                                }}>
+                                    {markdown}
+                                </Markdown>
+                                {diagrams.map(diagram => (
+                                    <MermaidDiagram
+                                        key={diagram.id}
+                                        chart={diagram.code}
+                                        id={diagram.id}
+                                    />
+                                ))}
+                            </>
+                        )}
                     </Box>
                 </Stack>
             </Stack>
