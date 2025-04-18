@@ -60,6 +60,16 @@ export const setJsonServerProfile = (profile: string): void => {
     localStorage.setItem(PROFILE_STORAGE_KEY, profile);
 };
 
+// Custom event for server configuration changes
+export const SERVER_CONFIG_CHANGED_EVENT = 'server-config-changed';
+
+/**
+ * Dispatches an event when server configuration changes
+ */
+export const notifyServerConfigChanged = (): void => {
+    window.dispatchEvent(new Event(SERVER_CONFIG_CHANGED_EVENT));
+};
+
 /**
  * Modal component for setting and managing the JSON Server URL and authentication
  */
@@ -108,6 +118,7 @@ const StorageServerModal: React.FC = () => {
             setJsonServerProfile(profileId);
             setError('');
             setOpen(false);
+            notifyServerConfigChanged();
         } catch (err) {
             setError('Please enter a valid URL including the protocol (e.g., http://localhost:7781)');
         }

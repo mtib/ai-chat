@@ -9,7 +9,7 @@ import {
     saveConversationToServer,
     deleteConversationFromServer
 } from '../utils/apiUtils';
-import { getJsonServerUrl, getJsonServerToken } from '../components/StorageServerModal';
+import { getJsonServerUrl, getJsonServerToken, SERVER_CONFIG_CHANGED_EVENT } from '../components/StorageServerModal';
 
 // Storage key for active conversation ID
 const ACTIVE_CONVERSATION_KEY = 'active_conversation_id';
@@ -34,123 +34,137 @@ export const useConversations = () => {
         });
     };
 
-    // Load initial conversations
-    useEffect(() => {
-        const loadInitialConversations = async () => {
-            setIsLoading(true);
-            try {
-                // Check if a server is configured
-                const serverUrl = getJsonServerUrl();
-                const serverToken = getJsonServerToken();
-                const isServerConfigured = !!(serverUrl && serverToken);
-                setServerConfigured(isServerConfigured);
+    // Load conversations function that can be reused
+    const loadAllConversations = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            // Check if a server is configured
+            const serverUrl = getJsonServerUrl();
+            const serverToken = getJsonServerToken();
+            const isServerConfigured = !!(serverUrl && serverToken);
+            setServerConfigured(isServerConfigured);
 
-                // Get conversation list from server if configured
-                let serverConversationIds: string[] = [];
-                if (isServerConfigured) {
-                    try {
-                        serverConversationIds = await fetchConversationList();
-                    } catch (error) {
-                        console.error('Failed to fetch conversation list from server:', error);
-                    }
+            // Get conversation list from server if configured
+            let serverConversationIds: string[] = [];
+            if (isServerConfigured) {
+                try {
+                    serverConversationIds = await fetchConversationList();
+                } catch (error) {
+                    console.error('Failed to fetch conversation list from server:', error);
+                }
+            }
+
+            // Load conversations from local storage
+            const loadedConversations = await loadConversations();
+
+            // Create a map of conversations by ID for easier lookup
+            const conversationsMap = new Map<string, Conversation>();
+            loadedConversations.forEach(conv => {
+                conversationsMap.set(conv.id, conv);
+            });
+
+            // If server is configured, fetch any server conversations not in local storage
+            if (isServerConfigured && serverConversationIds.length > 0) {
+                const fetchPromises: Promise<void>[] = [];
+
+                for (const id of serverConversationIds) {
+                    // If we don't have this conversation locally, fetch it from the server
+                    const fetchPromise = fetchConversationFromServer(id)
+                        .then(serverConversation => {
+                            if (serverConversation) {
+                                // Add the fetched conversation to our map
+                                conversationsMap.set(id, serverConversation);
+                                // Save it to local storage for future use
+                                saveConversationToFile(serverConversation).catch(err => {
+                                    console.error(`Failed to save fetched conversation ${id} to local storage:`, err);
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error(`Failed to fetch conversation ${id} from server:`, error);
+                        });
+
+                    fetchPromises.push(fetchPromise);
                 }
 
-                // Load conversations from local storage
-                const loadedConversations = await loadConversations();
+                // Wait for all fetches to complete
+                await Promise.all(fetchPromises);
 
-                // Create a map of conversations by ID for easier lookup
-                const conversationsMap = new Map<string, Conversation>();
-                loadedConversations.forEach(conv => {
-                    conversationsMap.set(conv.id, conv);
-                });
+                // Also check for conversations that exist locally but not on the server
+                // and push them to the server
+                const syncPromises: Promise<void>[] = [];
 
-                // If server is configured, fetch any server conversations not in local storage
-                if (isServerConfigured && serverConversationIds.length > 0) {
-                    const fetchPromises: Promise<void>[] = [];
-
-                    for (const id of serverConversationIds) {
-                        // If we don't have this conversation locally, fetch it from the server
-                        const fetchPromise = fetchConversationFromServer(id)
-                            .then(serverConversation => {
-                                if (serverConversation) {
-                                    // Add the fetched conversation to our map
-                                    conversationsMap.set(id, serverConversation);
-                                    // Save it to local storage for future use
-                                    saveConversationToFile(serverConversation).catch(err => {
-                                        console.error(`Failed to save fetched conversation ${id} to local storage:`, err);
-                                    });
+                for (const [id, conversation] of conversationsMap.entries()) {
+                    if (!serverConversationIds.includes(id)) {
+                        const syncPromise = saveConversationToServer(conversation)
+                            .then(success => {
+                                if (success) {
+                                    // Add this ID to the server list
+                                    serverConversationIds.push(id);
                                 }
                             })
                             .catch(error => {
-                                console.error(`Failed to fetch conversation ${id} from server:`, error);
+                                console.error(`Failed to sync conversation ${id} to server:`, error);
                             });
 
-                        fetchPromises.push(fetchPromise);
-                    }
-
-                    // Wait for all fetches to complete
-                    await Promise.all(fetchPromises);
-
-                    // Also check for conversations that exist locally but not on the server
-                    // and push them to the server
-                    const syncPromises: Promise<void>[] = [];
-
-                    for (const [id, conversation] of conversationsMap.entries()) {
-                        if (!serverConversationIds.includes(id)) {
-                            const syncPromise = saveConversationToServer(conversation)
-                                .then(success => {
-                                    if (success) {
-                                        // Add this ID to the server list
-                                        serverConversationIds.push(id);
-                                    }
-                                })
-                                .catch(error => {
-                                    console.error(`Failed to sync conversation ${id} to server:`, error);
-                                });
-
-                            syncPromises.push(syncPromise);
-                        }
-                    }
-
-                    // Wait for all syncs to complete
-                    await Promise.all(syncPromises);
-
-                    // Update the server conversation list if we added new IDs
-                    const originalLength = serverConversationIds.length;
-                    if (syncPromises.length > 0) {
-                        await saveConversationList(serverConversationIds);
+                        syncPromises.push(syncPromise);
                     }
                 }
 
-                // Convert the map back to an array and sort
-                const allConversations = Array.from(conversationsMap.values());
-                const sortedConversations = sortConversationsByModified(allConversations);
+                // Wait for all syncs to complete
+                await Promise.all(syncPromises);
 
-                setConversations(sortedConversations);
+                // Update the server conversation list if we added new IDs
+                const originalLength = serverConversationIds.length;
+                if (syncPromises.length > 0) {
+                    await saveConversationList(serverConversationIds);
+                }
+            }
 
-                // Try to restore previously active conversation from localStorage
-                const savedActiveId = localStorage.getItem(ACTIVE_CONVERSATION_KEY);
-                if (savedActiveId && sortedConversations.length > 0) {
-                    const savedConversation = sortedConversations.find(c => c.id === savedActiveId);
-                    if (savedConversation) {
-                        setActiveConversation(savedConversation);
-                    } else {
-                        // Fallback to first conversation if saved one not found
-                        setActiveConversation(sortedConversations[0]);
-                    }
-                } else if (sortedConversations.length > 0) {
-                    // Default to first conversation
+            // Convert the map back to an array and sort
+            const allConversations = Array.from(conversationsMap.values());
+            const sortedConversations = sortConversationsByModified(allConversations);
+
+            setConversations(sortedConversations);
+
+            // Try to restore previously active conversation from localStorage
+            const savedActiveId = localStorage.getItem(ACTIVE_CONVERSATION_KEY);
+            if (savedActiveId && sortedConversations.length > 0) {
+                const savedConversation = sortedConversations.find(c => c.id === savedActiveId);
+                if (savedConversation) {
+                    setActiveConversation(savedConversation);
+                } else {
+                    // Fallback to first conversation if saved one not found
                     setActiveConversation(sortedConversations[0]);
                 }
-            } catch (error) {
-                console.error('Failed to load conversations:', error);
-            } finally {
-                setIsLoading(false);
+            } else if (sortedConversations.length > 0) {
+                // Default to first conversation
+                setActiveConversation(sortedConversations[0]);
             }
+        } catch (error) {
+            console.error('Failed to load conversations:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    // Load initial conversations
+    useEffect(() => {
+        loadAllConversations();
+    }, [loadAllConversations]);
+
+    // Add event listener for server config changes
+    useEffect(() => {
+        const handleServerConfigChange = () => {
+            loadAllConversations();
         };
 
-        loadInitialConversations();
-    }, []);
+        window.addEventListener(SERVER_CONFIG_CHANGED_EVENT, handleServerConfigChange);
+
+        return () => {
+            window.removeEventListener(SERVER_CONFIG_CHANGED_EVENT, handleServerConfigChange);
+        };
+    }, [loadAllConversations]);
 
     // Custom setter for active conversation that also saves to localStorage
     const handleSetActiveConversation = useCallback((conversation: Conversation | null) => {
