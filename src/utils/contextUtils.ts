@@ -3,7 +3,7 @@ import { Message, Conversation } from '../types';
 /**
  * Maximum number of messages to include in context when not selecting specifically
  */
-const MAX_CONTEXT_MESSAGES = 20;
+const MAX_CONTEXT_MESSAGES = 50;
 
 /**
  * Calculate term frequency for a string
