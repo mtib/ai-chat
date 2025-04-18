@@ -103,7 +103,9 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
                 <ConversationList onItemClick={onItemClick} />
             </Box>
-            <ApiKeyModal />
+            <Box sx={{ display: 'flex', direction: 'column', px: 1 }}>
+                <ApiKeyModal />
+            </Box>
         </>
     );
 };

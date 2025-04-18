@@ -73,7 +73,7 @@ const ApiKeyModal: React.FC = () => {
                 size="small"
                 onClick={handleOpen}
                 sx={{
-                    m: 1
+                    width: '100%',
                 }}
             >
                 {hasEnvKey ? 'API Key (Environment)' : 'Change API Key'}
