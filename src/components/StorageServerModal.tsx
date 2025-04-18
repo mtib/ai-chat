@@ -53,6 +53,7 @@ const StorageServerModal: React.FC = () => {
     const [serverUrl, setServerUrl] = useState('');
     const [authToken, setAuthToken] = useState('');
     const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
     const theme = useTheme();
 
     useEffect(() => {
@@ -91,11 +92,13 @@ const StorageServerModal: React.FC = () => {
     const handleTest = useCallback(async () => {
         if (!serverUrl.trim()) {
             setError('Please enter a server URL to test');
+            setSuccess('');
             return;
         }
 
         if (!authToken.trim()) {
             setError('Please enter an authentication token to test the connection');
+            setSuccess('');
             return;
         }
 
@@ -116,22 +119,27 @@ const StorageServerModal: React.FC = () => {
                     const data = await response.json();
                     if (data.auth === 'valid') {
                         setError('');
-                        alert('Connection successful! Server is reachable and authentication is valid.');
+                        setSuccess('Connection successful! Server is reachable and authentication is valid.');
                     } else {
                         setError('Server is reachable but authentication validation failed.');
+                        setSuccess('');
                     }
                 } else {
                     if (response.status === 401 || response.status === 403) {
                         setError('Authentication failed. Please check your token.');
+                        setSuccess('');
                     } else {
                         setError(`Server responded with status: ${response.status}`);
+                        setSuccess('');
                     }
                 }
             } catch (err) {
                 setError('Failed to connect to server. Please check the URL and ensure the server is running.');
+                setSuccess('');
             }
         } catch (err) {
             setError('Please enter a valid URL including the protocol (e.g., http://localhost:7781)');
+            setSuccess('');
         }
     }, [serverUrl, authToken]);
 
@@ -183,6 +191,7 @@ const StorageServerModal: React.FC = () => {
                         </Typography>
 
                         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+                        {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
                         <TextField
                             label="JSON Server URL"
