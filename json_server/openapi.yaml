@@ -1,0 +1,172 @@
+openapi: 3.0.3
+info:
+  title: JSON Server API
+  description: A simple Flask-based server that stores data and proxies HTTP requests
+  version: 1.0.0
+servers:
+  - url: http://localhost:7781
+    description: Local development server
+paths:
+  /data/{key}:
+    put:
+      summary: Store data with the given key
+      description: Stores arbitrary data in Redis with the given key
+      parameters:
+        - name: key
+          in: path
+          required: true
+          description: The key to store the data under
+          schema:
+            type: string
+      requestBody:
+        description: Any data to store
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        201:
+          description: Data stored successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  key:
+                    type: string
+                    example: mykey
+        500:
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Error message
+    get:
+      summary: Retrieve data by key
+      description: Retrieves previously stored data from Redis
+      parameters:
+        - name: key
+          in: path
+          required: true
+          description: The key to retrieve data for
+          schema:
+            type: string
+      responses:
+        200:
+          description: Data retrieved successfully
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        404:
+          description: Key not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Key not found
+        500:
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Error message
+  /proxy/{encodedJson}:
+    get:
+      summary: Proxy an HTTP request
+      description: Proxies an HTTP request and caches the response in Redis
+      parameters:
+        - name: encodedJson
+          in: path
+          required: true
+          description: Base64 encoded JSON containing the request configuration
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful proxy response
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        400:
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: URL is required
+        500:
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Error message
+components:
+  schemas:
+    ProxyRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          description: The URL to proxy the request to
+          example: https://api.example.com/data
+        headers:
+          type: object
+          description: Headers to include in the request
+          example:
+            Authorization: Bearer token
+            Content-Type: application/json
+        body:
+          type: object
+          description: Body to include in the request
+          example:
+            key: value
+        method:
+          type: string
+          description: HTTP method to use
+          enum: [GET, POST, PUT, DELETE, PATCH]
+          default: GET
+          example: GET
