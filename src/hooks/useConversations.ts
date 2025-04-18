@@ -153,6 +153,32 @@ export const useConversations = () => {
         loadAllConversations();
     }, [loadAllConversations]);
 
+    // Add event listeners for visibility change and focus to reload conversations when user returns
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                // User has switched back to the tab
+                loadAllConversations();
+            }
+        };
+
+        const handleFocus = () => {
+            // User has focused the window
+            loadAllConversations();
+        };
+
+        // Listen for visibility change (tab switching)
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        // Listen for window focus (returning to the app)
+        window.addEventListener('focus', handleFocus);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focus', handleFocus);
+        };
+    }, [loadAllConversations]);
+
     // Add event listener for server config changes
     useEffect(() => {
         const handleServerConfigChange = () => {
