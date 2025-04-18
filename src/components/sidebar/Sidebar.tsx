@@ -7,6 +7,7 @@ import ConversationList from './ConversationList';
 import { Conversation } from '../../types';
 import { saveConversationToFile } from '../../utils/fileUtils';
 import ApiKeyModal from '../ApiKeyModal';
+import StorageServerModal from '../StorageServerModal';
 
 interface SidebarProps {
     onItemClick?: () => void; // Optional callback for when an item is clicked
@@ -104,6 +105,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
                 <ConversationList onItemClick={onItemClick} />
             </Box>
             <Stack direction="column" sx={{ px: 1 }}>
+                <StorageServerModal />
                 <ApiKeyModal />
             </Stack>
         </>

@@ -2,6 +2,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { Conversation } from '../types';
 import { loadConversations, saveConversationToFile, deleteConversation as deleteConversationFile, updateConversationTitle as updateConversationTitleFile } from '../utils/fileUtils';
 import { filterConversations } from '../utils/searchUtils';
+import {
+    fetchConversationList,
+    saveConversationList,
+    fetchConversationFromServer,
+    saveConversationToServer,
+    deleteConversationFromServer
+} from '../utils/apiUtils';
+import { getJsonServerUrl, getJsonServerToken, SERVER_CONFIG_CHANGED_EVENT } from '../components/StorageServerModal';
 
 // Storage key for active conversation ID
 const ACTIVE_CONVERSATION_KEY = 'active_conversation_id';
@@ -15,6 +23,7 @@ export const useConversations = () => {
     const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [isLoading, setIsLoading] = useState(true);
+    const [serverConfigured, setServerConfigured] = useState(false);
 
     // Sort conversations by lastModified timestamp (most recent first)
     const sortConversationsByModified = (convs: Conversation[]): Conversation[] => {
@@ -25,39 +34,137 @@ export const useConversations = () => {
         });
     };
 
-    // Load initial conversations
-    useEffect(() => {
-        const loadInitialConversations = async () => {
-            setIsLoading(true);
-            try {
-                const loadedConversations = await loadConversations();
-                // Sort conversations by lastModified timestamp
-                const sortedConversations = sortConversationsByModified(loadedConversations);
-                setConversations(sortedConversations);
+    // Load conversations function that can be reused
+    const loadAllConversations = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            // Check if a server is configured
+            const serverUrl = getJsonServerUrl();
+            const serverToken = getJsonServerToken();
+            const isServerConfigured = !!(serverUrl && serverToken);
+            setServerConfigured(isServerConfigured);
 
-                // Try to restore previously active conversation from localStorage
-                const savedActiveId = localStorage.getItem(ACTIVE_CONVERSATION_KEY);
-                if (savedActiveId && sortedConversations.length > 0) {
-                    const savedConversation = sortedConversations.find(c => c.id === savedActiveId);
-                    if (savedConversation) {
-                        setActiveConversation(savedConversation);
-                    } else {
-                        // Fallback to first conversation if saved one not found
-                        setActiveConversation(sortedConversations[0]);
+            // Get conversation list from server if configured
+            let serverConversationIds: string[] = [];
+            if (isServerConfigured) {
+                try {
+                    serverConversationIds = await fetchConversationList();
+                } catch (error) {
+                    console.error('Failed to fetch conversation list from server:', error);
+                }
+            }
+
+            // Load conversations from local storage
+            const loadedConversations = await loadConversations();
+
+            // Create a map of conversations by ID for easier lookup
+            const conversationsMap = new Map<string, Conversation>();
+            loadedConversations.forEach(conv => {
+                conversationsMap.set(conv.id, conv);
+            });
+
+            // If server is configured, fetch any server conversations not in local storage
+            if (isServerConfigured && serverConversationIds.length > 0) {
+                const fetchPromises: Promise<void>[] = [];
+
+                for (const id of serverConversationIds) {
+                    // If we don't have this conversation locally, fetch it from the server
+                    const fetchPromise = fetchConversationFromServer(id)
+                        .then(serverConversation => {
+                            if (serverConversation) {
+                                // Add the fetched conversation to our map
+                                conversationsMap.set(id, serverConversation);
+                                // Save it to local storage for future use
+                                saveConversationToFile(serverConversation).catch(err => {
+                                    console.error(`Failed to save fetched conversation ${id} to local storage:`, err);
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error(`Failed to fetch conversation ${id} from server:`, error);
+                        });
+
+                    fetchPromises.push(fetchPromise);
+                }
+
+                // Wait for all fetches to complete
+                await Promise.all(fetchPromises);
+
+                // Also check for conversations that exist locally but not on the server
+                // and push them to the server
+                const syncPromises: Promise<void>[] = [];
+
+                for (const [id, conversation] of conversationsMap.entries()) {
+                    if (!serverConversationIds.includes(id)) {
+                        const syncPromise = saveConversationToServer(conversation)
+                            .then(success => {
+                                if (success) {
+                                    // Add this ID to the server list
+                                    serverConversationIds.push(id);
+                                }
+                            })
+                            .catch(error => {
+                                console.error(`Failed to sync conversation ${id} to server:`, error);
+                            });
+
+                        syncPromises.push(syncPromise);
                     }
-                } else if (sortedConversations.length > 0) {
-                    // Default to first conversation
+                }
+
+                // Wait for all syncs to complete
+                await Promise.all(syncPromises);
+
+                // Update the server conversation list if we added new IDs
+                const originalLength = serverConversationIds.length;
+                if (syncPromises.length > 0) {
+                    await saveConversationList(serverConversationIds);
+                }
+            }
+
+            // Convert the map back to an array and sort
+            const allConversations = Array.from(conversationsMap.values());
+            const sortedConversations = sortConversationsByModified(allConversations);
+
+            setConversations(sortedConversations);
+
+            // Try to restore previously active conversation from localStorage
+            const savedActiveId = localStorage.getItem(ACTIVE_CONVERSATION_KEY);
+            if (savedActiveId && sortedConversations.length > 0) {
+                const savedConversation = sortedConversations.find(c => c.id === savedActiveId);
+                if (savedConversation) {
+                    setActiveConversation(savedConversation);
+                } else {
+                    // Fallback to first conversation if saved one not found
                     setActiveConversation(sortedConversations[0]);
                 }
-            } catch (error) {
-                console.error('Failed to load conversations:', error);
-            } finally {
-                setIsLoading(false);
+            } else if (sortedConversations.length > 0) {
+                // Default to first conversation
+                setActiveConversation(sortedConversations[0]);
             }
+        } catch (error) {
+            console.error('Failed to load conversations:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    // Load initial conversations
+    useEffect(() => {
+        loadAllConversations();
+    }, [loadAllConversations]);
+
+    // Add event listener for server config changes
+    useEffect(() => {
+        const handleServerConfigChange = () => {
+            loadAllConversations();
         };
 
-        loadInitialConversations();
-    }, []);
+        window.addEventListener(SERVER_CONFIG_CHANGED_EVENT, handleServerConfigChange);
+
+        return () => {
+            window.removeEventListener(SERVER_CONFIG_CHANGED_EVENT, handleServerConfigChange);
+        };
+    }, [loadAllConversations]);
 
     // Custom setter for active conversation that also saves to localStorage
     const handleSetActiveConversation = useCallback((conversation: Conversation | null) => {
@@ -92,8 +199,23 @@ export const useConversations = () => {
                 };
             }
 
-            // Save the conversation to storage
+            // Save the conversation to local storage
             await saveConversationToFile(newConversation);
+
+            // Update server if configured
+            if (serverConfigured) {
+                // Save the full conversation to the server
+                await saveConversationToServer(newConversation);
+
+                // Update the conversation list
+                const currentConversations = conversations.map(c => c.id);
+                // Add the new conversation ID if it's not already there
+                if (!currentConversations.includes(newConversation.id)) {
+                    const updatedList = [...currentConversations, newConversation.id];
+                    // Save the updated list to the server
+                    await saveConversationList(updatedList);
+                }
+            }
 
             // Resort conversations with the new one
             setConversations(prev => sortConversationsByModified([...prev, newConversation!]));
@@ -103,7 +225,7 @@ export const useConversations = () => {
             console.error('Failed to create conversation:', error);
             return null;
         }
-    }, [conversations.length, handleSetActiveConversation]);
+    }, [conversations, handleSetActiveConversation, serverConfigured]);
 
     // Update a conversation
     const handleUpdateConversation = useCallback((updatedConversation: Conversation) => {
@@ -115,8 +237,15 @@ export const useConversations = () => {
 
         // Ensure we save the updated conversation to storage
         saveConversationToFile(conversationWithTimestamp).catch(err => {
-            console.error('Failed to save updated conversation:', err);
+            console.error('Failed to save updated conversation to local storage:', err);
         });
+
+        // If server is configured, save the conversation to the server
+        if (serverConfigured) {
+            saveConversationToServer(conversationWithTimestamp).catch(err => {
+                console.error('Failed to save updated conversation to server:', err);
+            });
+        }
 
         setConversations(prev => {
             const newList = prev.map(c =>
@@ -128,13 +257,30 @@ export const useConversations = () => {
         if (activeConversation?.id === conversationWithTimestamp.id) {
             handleSetActiveConversation(conversationWithTimestamp);
         }
-    }, [activeConversation, handleSetActiveConversation]);
+    }, [activeConversation, handleSetActiveConversation, serverConfigured]);
 
     // Delete a conversation
     const handleDeleteConversation = useCallback(async (conversationId: string): Promise<Conversation[]> => {
         try {
             // Delete from storage first
             const updatedConversations = await deleteConversationFile(conversationId);
+
+            // Update server if configured
+            if (serverConfigured) {
+                // Delete the conversation from the server
+                await deleteConversationFromServer(conversationId);
+
+                // Update the conversation list
+                const serverIds = await fetchConversationList();
+
+                // Remove the deleted conversation ID
+                const updatedServerIds = serverIds.filter(id => id !== conversationId);
+
+                // If the list changed, save it back to the server
+                if (updatedServerIds.length !== serverIds.length) {
+                    await saveConversationList(updatedServerIds);
+                }
+            }
 
             // Sort the resulting conversations
             const sortedConversations = sortConversationsByModified(updatedConversations);
@@ -153,7 +299,7 @@ export const useConversations = () => {
             console.error('Failed to delete conversation:', error);
             return conversations;
         }
-    }, [activeConversation, conversations, handleSetActiveConversation]);
+    }, [activeConversation, conversations, handleSetActiveConversation, serverConfigured]);
 
     // Update conversation title
     const handleUpdateTitle = useCallback(async (conversationId: string, newTitle: string) => {
@@ -163,6 +309,11 @@ export const useConversations = () => {
 
             if (!updatedConversation) {
                 throw new Error("Failed to update conversation title");
+            }
+
+            // If server is configured, update the conversation on the server
+            if (serverConfigured) {
+                await saveConversationToServer(updatedConversation);
             }
 
             // Update local state and resort
@@ -181,7 +332,7 @@ export const useConversations = () => {
             console.error('Failed to update conversation title:', error);
             return null;
         }
-    }, [activeConversation, handleSetActiveConversation]);
+    }, [activeConversation, handleSetActiveConversation, serverConfigured]);
 
     // Filter conversations based on search query
     const filteredConversations = filterConversations(conversations, searchQuery);

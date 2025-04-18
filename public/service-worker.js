@@ -17,8 +17,10 @@ const STATIC_ASSETS = [
 ];
 
 // Helper function to check if URL is from Azure Blob Storage (DALL-E images)
+// or if it's a proxied DALL-E image URL
 const isDalleImage = (url) => {
-    return url.includes('oaidalleapiprodscus.blob.core.windows.net');
+    return url.includes('oaidalleapiprodscus.blob.core.windows.net') ||
+        (url.includes('/proxy/') && url.includes('?auth='));
 };
 
 // Helper function to check if URL is from Google Fonts

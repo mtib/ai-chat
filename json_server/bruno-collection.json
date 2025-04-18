@@ -1,0 +1,41 @@
+{
+    "version": "1",
+    "name": "JSON Server Collection",
+    "folders": [
+        {
+            "name": "Data Endpoints",
+            "requests": [
+                {
+                    "name": "Store Data",
+                    "method": "PUT",
+                    "url": "http://localhost:7781/data/testkey",
+                    "body": {
+                        "mode": "raw",
+                        "raw": "This is some test data to store in Redis"
+                    }
+                },
+                {
+                    "name": "Retrieve Data",
+                    "method": "GET",
+                    "url": "http://localhost:7781/data/testkey"
+                }
+            ]
+        },
+        {
+            "name": "Proxy Endpoints",
+            "requests": [
+                {
+                    "name": "Proxy Request",
+                    "method": "GET",
+                    "url": "http://localhost:7781/proxy/{{base64_encode(JSON.stringify({url: 'https://jsonplaceholder.typicode.com/todos/1'}))}}"
+                },
+                {
+                    "name": "Proxy Request with Headers",
+                    "method": "GET",
+                    "url": "http://localhost:7781/proxy/{{base64_encode(JSON.stringify({url: 'https://api.openai.com/v1/models', headers: {'Authorization': 'Bearer YOUR_API_KEY'}}))}}",
+                    "description": "Example of proxying a request with custom headers"
+                }
+            ]
+        }
+    ]
+}

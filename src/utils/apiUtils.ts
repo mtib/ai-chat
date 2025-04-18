@@ -4,11 +4,15 @@ import { Conversation, Message, ServerAssistantConfig } from '../types';
 import { ENV_API_KEY, OPENAI_CONFIG, SYSTEM_PROMPT } from '../config/apiConfig';
 import { findRelevantMessages } from './contextUtils';
 import { generateEmbedding, getAssistantContext, storeAssistantContent } from './assistantServerUtils';
+import { getJsonServerUrl, getJsonServerToken, getJsonServerProfile } from '../components/StorageServerModal';
 
 // This should be stored securely and not in client-side code in production
 // Consider using environment variables or a backend service
 let OPENAI_API_KEY = ENV_API_KEY;
 let OPENAI_ORG_ID = '';
+
+// Cache for conversation list to avoid unnecessary fetches
+let conversationListCache: string[] | null = null;
 
 /**
  * Sets the OpenAI API key and saves it to local storage
@@ -55,6 +59,40 @@ export interface ImageResponse {
 }
 
 /**
+ * Proxies an image URL through the JSON server if configured
+ */
+export const proxyImageUrl = (imageUrl: string): string => {
+    const serverUrl = getJsonServerUrl();
+    const serverToken = getJsonServerToken();
+
+    // If no server is configured, return the original URL
+    if (!serverUrl || !serverToken) {
+        return imageUrl;
+    }
+
+    try {
+        // Create the proxy request configuration
+        const proxyConfig = {
+            url: imageUrl,
+            method: "GET"
+        };
+
+        // Base64 encode the proxy configuration
+        const encodedConfig = btoa(JSON.stringify(proxyConfig));
+
+        // Base64 encode the auth token for URL parameter
+        const encodedAuthToken = btoa(serverToken);
+
+        // Return the proxied URL with auth parameter
+        return `${serverUrl}/proxy/${encodedConfig}?auth=${encodedAuthToken}`;
+    } catch (error) {
+        console.error('Error creating proxy URL:', error);
+        // Fall back to the original URL if something goes wrong
+        return imageUrl;
+    }
+};
+
+/**
  * Generates an image using DALL-E 3
  */
 export const generateImageWithDALLE = async (prompt: string): Promise<ImageResponse> => {
@@ -89,8 +127,13 @@ export const generateImageWithDALLE = async (prompt: string): Promise<ImageRespo
             { headers }
         );
 
+        const originalImageUrl = response.data.data[0].url;
+
+        // Proxy the image URL if a JSON server is configured
+        const imageUrl = proxyImageUrl(originalImageUrl);
+
         return {
-            imageUrl: response.data.data[0].url,
+            imageUrl,
             revisedPrompt: response.data.data[0].revised_prompt
         };
     } catch (error) {
@@ -211,11 +254,250 @@ export const sendMessageToOpenAI = async (conversation: Conversation): Promise<s
 };
 
 /**
+ * Fetch the list of conversations from the JSON server
+ */
+export const fetchConversationList = async (): Promise<string[]> => {
+    const serverUrl = getJsonServerUrl();
+    const serverToken = getJsonServerToken();
+    const profileId = getJsonServerProfile();
+
+    // If no server is configured, return an empty array
+    if (!serverUrl || !serverToken) {
+        return [];
+    }
+
+    try {
+        const response = await axios.get(
+            `${serverUrl}/data/${profileId}/conversations`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${serverToken}`
+                }
+            }
+        );
+
+        // If we got a successful response and it's parseable JSON, update the cache
+        if (response.data) {
+            try {
+                const conversationList = response.data;
+                conversationListCache = conversationList;
+                return conversationList;
+            } catch (error) {
+                console.error('Error parsing conversation list:', error);
+                return [];
+            }
+        }
+
+        return [];
+    } catch (error) {
+        console.error('Error fetching conversation list:', error);
+        // If we get a 404, it means no conversation list exists yet
+        const axiosError = error as any;
+        if (axiosError.response?.status === 404) {
+            return [];
+        }
+        throw error;
+    }
+};
+
+/**
+ * Save the list of conversations to the JSON server
+ */
+export const saveConversationList = async (conversationIds: string[]): Promise<boolean> => {
+    const serverUrl = getJsonServerUrl();
+    const serverToken = getJsonServerToken();
+    const profileId = getJsonServerProfile();
+
+    // If no server is configured, return false
+    if (!serverUrl || !serverToken) {
+        return false;
+    }
+
+    try {
+        // Convert the conversation list to JSON
+        const conversationListJson = JSON.stringify(conversationIds);
+
+        // Send the conversation list to the server
+        await axios.put(
+            `${serverUrl}/data/${profileId}/conversations`,
+            conversationListJson,
+            {
+                headers: {
+                    'Authorization': `Bearer ${serverToken}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        // Update the cache
+        conversationListCache = conversationIds;
+
+        return true;
+    } catch (error) {
+        console.error('Error saving conversation list:', error);
+        return false;
+    }
+};
+
+/**
+ * Fetch a conversation from the JSON server
+ */
+export const fetchConversationFromServer = async (conversationId: string): Promise<Conversation | null> => {
+    const serverUrl = getJsonServerUrl();
+    const serverToken = getJsonServerToken();
+    const profileId = getJsonServerProfile();
+
+    // If no server is configured, return null
+    if (!serverUrl || !serverToken) {
+        return null;
+    }
+
+    try {
+        const response = await axios.get(
+            `${serverUrl}/data/${profileId}/conversation/${conversationId}`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${serverToken}`
+                }
+            }
+        );
+
+        // If we got a successful response and it's parseable JSON
+        if (response.data) {
+            try {
+                const conversation = response.data;
+                return conversation;
+            } catch (error) {
+                console.error(`Error parsing conversation ${conversationId}:`, error);
+                return null;
+            }
+        }
+
+        return null;
+    } catch (error) {
+        console.error(`Error fetching conversation ${conversationId}:`, error);
+        // If we get a 404, it means the conversation doesn't exist
+        const axiosError = error as any;
+        if (axiosError.response?.status === 404) {
+            return null;
+        }
+        throw error;
+    }
+};
+
+/**
+ * Save a conversation to the JSON server
+ */
+export const saveConversationToServer = async (conversation: Conversation): Promise<boolean> => {
+    const serverUrl = getJsonServerUrl();
+    const serverToken = getJsonServerToken();
+    const profileId = getJsonServerProfile();
+
+    // If no server is configured, return false
+    if (!serverUrl || !serverToken) {
+        return false;
+    }
+
+    try {
+        // Convert the conversation to JSON
+        const conversationJson = JSON.stringify(conversation);
+
+        // Send the conversation to the server
+        await axios.put(
+            `${serverUrl}/data/${profileId}/conversation/${conversation.id}`,
+            conversationJson,
+            {
+                headers: {
+                    'Authorization': `Bearer ${serverToken}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        return true;
+    } catch (error) {
+        console.error(`Error saving conversation ${conversation.id} to server:`, error);
+        return false;
+    }
+};
+
+/**
+ * Delete a conversation from the JSON server
+ */
+export const deleteConversationFromServer = async (conversationId: string): Promise<boolean> => {
+    const serverUrl = getJsonServerUrl();
+    const serverToken = getJsonServerToken();
+    const profileId = getJsonServerProfile();
+
+    // If no server is configured, return false
+    if (!serverUrl || !serverToken) {
+        return false;
+    }
+
+    try {
+        // Delete by putting an empty string to the key
+        await axios.put(
+            `${serverUrl}/data/${profileId}/conversation/${conversationId}`,
+            "",
+            {
+                headers: {
+                    'Authorization': `Bearer ${serverToken}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        return true;
+    } catch (error) {
+        console.error(`Error deleting conversation ${conversationId} from server:`, error);
+        return false;
+    }
+};
+
+/**
+ * Initialize the conversation system by fetching the conversation list from the server
+ * This should be called when the application starts
+ */
+export const initializeConversationSystem = async (): Promise<void> => {
+    try {
+        // Fetch the conversation list from the server
+        await fetchConversationList();
+    } catch (error) {
+        console.error('Error initializing conversation system:', error);
+    }
+};
+
+/**
  * Saves a conversation to storage
  */
 export const saveConversation = async (conversation: Conversation): Promise<boolean> => {
     try {
+        // First save the conversation to local storage
         await saveConversationToFile(conversation);
+
+        // If server is configured, save the conversation to the server
+        const serverUrl = getJsonServerUrl();
+        const serverToken = getJsonServerToken();
+
+        if (serverUrl && serverToken) {
+            // Save the full conversation to the server
+            await saveConversationToServer(conversation);
+
+            // Fetch the current list if we don't have it cached
+            let conversationList = conversationListCache;
+            if (!conversationList) {
+                conversationList = await fetchConversationList();
+            }
+
+            // Add the conversation ID to the list if it's not already there
+            if (!conversationList.includes(conversation.id)) {
+                conversationList.push(conversation.id);
+
+                // Save the updated list
+                await saveConversationList(conversationList);
+            }
+        }
+
         return true;
     } catch (error) {
         console.error('Error saving conversation:', error);
